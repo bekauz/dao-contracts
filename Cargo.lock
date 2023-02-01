@@ -644,6 +644,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-nogas"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-multi-test",
+ "cw-storage-plus 0.16.0",
+ "cw-utils 0.16.0",
+ "cw2 0.16.0",
+ "cw20 0.16.0",
+ "thiserror",
+]
+
+[[package]]
 name = "cw-ownable"
 version = "0.3.0"
 source = "git+https://github.com/steak-enjoyers/cw-plus-plus?rev=50d4d9333305894457e5028072a0465f4635b15b#50d4d9333305894457e5028072a0465f4635b15b"
