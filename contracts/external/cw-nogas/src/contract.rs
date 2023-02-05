@@ -1,14 +1,13 @@
-use std::error::Error;
-
-use bech32::{Variant, ToBase32};
+use bech32::{Variant};
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Addr, StdError};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cw2::set_contract_version;
+use cw_storage_plus::Map;
 use sha2::{Sha256, Digest};
 use crate::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use ripemd::Ripemd160;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ExternalMessage};
+use crate::state::NONCES;
 pub(crate) const CONTRACT_NAME: &str = "crates.io:cw-nogas";
 pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -27,12 +26,74 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    match msg {}
+    match msg {
+        ExecuteMsg::ProcessMessage { msg } => try_process_external_message(msg, deps, env, info),
+    }
+}
+
+fn try_process_external_message(
+    msg: ExternalMessage, 
+    deps: DepsMut, 
+    env: Env, 
+    info: MessageInfo
+) -> Result<Response, ContractError> {
+    // validate the nonce
+    let nonce = NONCES.load(deps.storage, msg.pk)?;
+    if msg.payload.nonce != nonce {
+        return Err(ContractError::InvalidNonce {  })
+    }
+
+    // validate the payload signature
+    let mut sha = Sha256::new();
+    sha.update(msg.payload); // TODO
+    let payload_hash = sha.finalize();
+
+    let verification = deps.api.secp256k1_verify(
+        payload_hash.as_slice(), 
+        &msg.signature, 
+        msg.pk.as_bytes(),
+    );
+
+    match verification {
+        Ok(valid_signature) => {
+            // error if payload had been tampered with
+            if !valid_signature {
+                return Err(ContractError::InvalidSignature {  })
+            }
+        },
+        Err(e) => return Err(ContractError::Std(StdError::from(e))),
+    };
+
+    // if message has an expiration date, validate that
+    if let Some(timestamp) = msg.payload.expiration {
+        if timestamp.is_expired(&env.block) {
+            return Err(ContractError::ExpiredPayload {  })
+        }
+    }
+
+    // bump the nonce
+    NONCES.save(deps.storage, msg.pk, &(nonce + 1))?;
+
+    // relay the message on behalf of signer
+    info.sender = ec_pk_to_bech32_address(msg.pk, "juno".to_string())?;
+
+    // execute the inner message
+    let response = execute(
+        deps,
+        env,
+        info,
+        *msg.payload.msg,
+    )?;
+    
+    Ok(Response::new()
+        .add_attribute("outer_method", "try_process_external_message")
+        .add_attributes(response.attributes)
+    )
 }
 
 // takes an uncompressed EC public key and a prefix

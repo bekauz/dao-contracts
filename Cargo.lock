@@ -148,6 +148,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b645a089122eccb6111b4f81cbc1a49f5900ac4666bb93ac027feaecf15607bf"
 
 [[package]]
+name = "bech32"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
+
+[[package]]
 name = "bip32"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,6 +653,8 @@ dependencies = [
 name = "cw-nogas"
 version = "0.1.0"
 dependencies = [
+ "bech32",
+ "bip32",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
@@ -654,6 +662,10 @@ dependencies = [
  "cw-utils 0.16.0",
  "cw2 0.16.0",
  "cw20 0.16.0",
+ "hex",
+ "ripemd",
+ "secp256k1",
+ "sha2 0.10.6",
  "thiserror",
 ]
 
@@ -2953,6 +2965,24 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "secp256k1"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4124a35fe33ae14259c490fd70fa199a32b9ce9502f2ee6bc4f81ec06fa65894"
+dependencies = [
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "642a62736682fdd8c71da0eb273e453c8ac74e33b9fb310e22ba5b03ec7651ff"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

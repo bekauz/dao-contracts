@@ -8,4 +8,13 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
+
+    #[error("Invalid nonce")]
+    InvalidNonce {},
+
+    #[error("Expired payload")]
+    ExpiredPayload {},
+
+    #[error("Invalid payload signature")]
+    InvalidSignature {},
 }
