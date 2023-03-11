@@ -124,6 +124,36 @@ pub struct CheckedMultipleChoiceOption {
     pub vote_count: Uint128,
 }
 
+impl CheckedMultipleChoiceOptions {
+    pub fn add_option(
+        self,
+        write_in: MultipleChoiceOption
+    ) -> Result<CheckedMultipleChoiceOptions, StdError> {
+        if self.options.len() + 1 > MAX_NUM_CHOICES as usize {
+            return Err(StdError::GenericErr {
+                msg: "Too many choices".to_string(),
+            });
+        }
+
+        let checked_option = CheckedMultipleChoiceOption {
+            index: (self.options.len() + 1) as u32,
+            option_type: MultipleChoiceOptionType::Standard,
+            title: write_in.title,
+            description: write_in.description,
+            msgs: write_in.msgs,
+            vote_count: Uint128::zero(),
+        };
+
+        // TODO: push this before the None option?
+        let mut new_options = self.options;
+        new_options.push(checked_option);
+
+        Ok(CheckedMultipleChoiceOptions {
+            options: new_options,
+        })
+    }
+}
+
 impl MultipleChoiceOptions {
     pub fn into_checked(self) -> StdResult<CheckedMultipleChoiceOptions> {
         if self.options.len() < 2 || self.options.len() > MAX_NUM_CHOICES as usize {

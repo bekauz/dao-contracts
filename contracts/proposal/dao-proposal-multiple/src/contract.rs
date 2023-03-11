@@ -25,6 +25,7 @@ use dao_voting::{
     status::Status,
     voting::{get_total_power, get_voting_power, validate_voting_period},
 };
+use dao_voting::multiple_choice::{CheckedMultipleChoiceOptions, MultipleChoiceOption};
 
 use crate::{msg::MigrateMsg, state::CREATION_POLICY};
 use crate::{
@@ -66,6 +67,7 @@ pub fn instantiate(
         max_voting_period,
         only_members_execute: msg.only_members_execute,
         allow_revoting: msg.allow_revoting,
+        allow_write_ins: msg.allow_write_ins,
         dao,
         close_proposal_on_execution_failure: msg.close_proposal_on_execution_failure,
     };
@@ -109,6 +111,11 @@ pub fn execute(
             vote,
             rationale,
         } => execute_vote(deps, env, info, proposal_id, vote, rationale),
+        ExecuteMsg::WriteInVote {
+            proposal_id,
+            write_in_vote,
+            rationale,
+        } => execute_write_in_vote(deps, env, info, proposal_id, write_in_vote, rationale),
         ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => execute_close(deps, env, info, proposal_id),
         ExecuteMsg::UpdateConfig {
@@ -117,6 +124,7 @@ pub fn execute(
             max_voting_period,
             only_members_execute,
             allow_revoting,
+            allow_write_ins,
             dao,
             close_proposal_on_execution_failure,
         } => execute_update_config(
@@ -127,6 +135,7 @@ pub fn execute(
             max_voting_period,
             only_members_execute,
             allow_revoting,
+            allow_write_ins,
             dao,
             close_proposal_on_execution_failure,
         ),
@@ -216,6 +225,7 @@ pub fn execute_propose(
             status: Status::Open,
             votes: MultipleChoiceVotes::zero(checked_multiple_choice_options.len()),
             allow_revoting: config.allow_revoting,
+            allow_write_ins: config.allow_write_ins,
             choices: checked_multiple_choice_options,
         };
         // Update the proposal's status. Addresses case where proposal
@@ -355,6 +365,37 @@ pub fn execute_vote(
         .add_attribute("proposal_id", proposal_id.to_string())
         .add_attribute("position", vote.to_string())
         .add_attribute("status", prop.status.to_string()))
+}
+
+pub fn execute_write_in_vote(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    proposal_id: u64,
+    write_in_vote: MultipleChoiceOption,
+    rationale: String,
+) -> Result<Response<Empty>, ContractError> {
+
+    // TODO: validate stuff
+    
+    let mut prop = PROPOSALS
+        .may_load(deps.storage, proposal_id)?
+        .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
+    
+    if !prop.allow_write_ins {
+        // TODO: error
+    }
+
+    // validate and add the new option to existing ones
+    let new_options = CheckedMultipleChoiceOptions {
+        options: prop.choices,
+    }.add_option(write_in_vote)?;
+
+    prop.choices = new_options.options;
+    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+    Ok(Response::default()
+        .add_attribute("action", "write_in"))
 }
 
 pub fn execute_execute(
@@ -523,6 +564,7 @@ pub fn execute_update_config(
     max_voting_period: Duration,
     only_members_execute: bool,
     allow_revoting: bool,
+    allow_write_ins: bool,
     dao: String,
     close_proposal_on_execution_failure: bool,
 ) -> Result<Response, ContractError> {
@@ -548,6 +590,7 @@ pub fn execute_update_config(
             max_voting_period,
             only_members_execute,
             allow_revoting,
+            allow_write_ins,
             dao,
             close_proposal_on_execution_failure,
         },

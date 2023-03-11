@@ -270,6 +270,7 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
         min_voting_period: None,
         only_members_execute: true,
         allow_revoting: false,
+        allow_write_ins: false,
         pre_propose_info: get_pre_propose_info(
             &mut app,
             Some(UncheckedDepositInfo {

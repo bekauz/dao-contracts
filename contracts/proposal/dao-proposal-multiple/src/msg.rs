@@ -5,6 +5,7 @@ use dao_voting::{
     multiple_choice::{MultipleChoiceOptions, MultipleChoiceVote, VotingStrategy},
     pre_propose::PreProposeInfo,
 };
+use dao_voting::multiple_choice::MultipleChoiceOption;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -27,6 +28,7 @@ pub struct InstantiateMsg {
     /// vote information is not known until the time of proposal
     /// expiration.
     pub allow_revoting: bool,
+    pub allow_write_ins: bool,
     /// Information about what addresses may create proposals.
     pub pre_propose_info: PreProposeInfo,
     /// If set to true proposals will be closed if their execution
@@ -68,6 +70,16 @@ pub enum ExecuteMsg {
         /// the vote.
         rationale: Option<String>,
     },
+    /// Proposes a new voting option and casts the vote towards it.
+    WriteInVote {
+        /// The ID of the proposal to vote on.
+        proposal_id: u64,
+        /// The senders proposed voting option.
+        write_in_vote: MultipleChoiceOption,
+        /// A non-optional rationale for why this write-in vote was
+        /// cast.
+        rationale: String,
+    },
     /// Causes the messages associated with a passed proposal to be
     /// executed by the DAO.
     Execute {
@@ -105,6 +117,7 @@ pub enum ExecuteMsg {
         /// vote information is not known until the time of proposal
         /// expiration.
         allow_revoting: bool,
+        allow_write_ins: bool,
         /// The address if tge DAO that this governance module is
         /// associated with.
         dao: String,

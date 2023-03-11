@@ -32,6 +32,7 @@ pub struct Config {
     /// vote information is not known until the time of proposal
     /// expiration.
     pub allow_revoting: bool,
+    pub allow_write_ins: bool,
     /// The address of the DAO that this governance module is
     /// associated with.
     pub dao: Addr,

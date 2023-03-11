@@ -30,7 +30,7 @@ pub struct MultipleChoiceProposal {
     pub expiration: Expiration,
     /// The options to be chosen from in the vote.
     pub choices: Vec<CheckedMultipleChoiceOption>,
-    /// Prosal status (Open, rejected, executed, execution failed, closed, passed)
+    /// Proposal status (Open, rejected, executed, execution failed, closed, passed)
     pub status: Status,
     /// Voting settings (threshold, quorum, etc.)
     pub voting_strategy: VotingStrategy,
@@ -41,8 +41,9 @@ pub struct MultipleChoiceProposal {
     /// Whether DAO members are allowed to change their votes.
     /// When disabled, proposals can be executed as soon as they pass.
     /// When enabled, proposals can only be executed after the voting
-    /// perid has ended and the proposal passed.
+    /// period has ended and the proposal passed.
     pub allow_revoting: bool,
+    pub allow_write_ins: bool,
 }
 
 pub enum VoteResult {
@@ -54,7 +55,7 @@ impl MultipleChoiceProposal {
     /// Consumes the proposal and returns a version which may be used
     /// in a query response. The difference being that proposal
     /// statuses are only updated on vote, execute, and close
-    /// events. It is possible though that since a vote has occured
+    /// events. It is possible though that since a vote has occurred
     /// the proposal expiring has changed its status. This method
     /// recomputes the status so that queries get accurate
     /// information.
@@ -270,6 +271,7 @@ mod tests {
         total_power: Uint128,
         is_expired: bool,
         allow_revoting: bool,
+        allow_write_ins: bool,
     ) -> MultipleChoiceProposal {
         // The last option that gets added in into_checked is always the none of the above option
         let options = vec![
@@ -305,6 +307,7 @@ mod tests {
             total_power,
             votes,
             allow_revoting,
+            allow_write_ins,
             min_voting_period: None,
         }
     }
@@ -327,6 +330,7 @@ mod tests {
             Uint128::new(1),
             false,
             false,
+            false,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -341,6 +345,7 @@ mod tests {
             voting_strategy.clone(),
             votes,
             Uint128::new(1),
+            false,
             false,
             false,
         );
@@ -359,6 +364,7 @@ mod tests {
             Uint128::new(100),
             false,
             false,
+            false,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -374,6 +380,7 @@ mod tests {
             votes,
             Uint128::new(100),
             true,
+            false,
             false,
         );
 
@@ -391,6 +398,7 @@ mod tests {
             Uint128::new(100),
             true,
             false,
+            false,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -405,6 +413,7 @@ mod tests {
             voting_strategy,
             votes,
             Uint128::new(150),
+            false,
             false,
             false,
         );
@@ -434,6 +443,7 @@ mod tests {
             Uint128::new(1),
             false,
             false,
+            false,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -448,6 +458,7 @@ mod tests {
             voting_strategy.clone(),
             votes,
             Uint128::new(1),
+            false,
             false,
             false,
         );
@@ -466,6 +477,7 @@ mod tests {
             Uint128::new(100),
             false,
             false,
+            false,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -481,6 +493,7 @@ mod tests {
             votes,
             Uint128::new(101),
             true,
+            false,
             false,
         );
 
@@ -498,6 +511,7 @@ mod tests {
             Uint128::new(10000),
             true,
             false,
+            false,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -512,6 +526,7 @@ mod tests {
             voting_strategy,
             votes,
             Uint128::new(150),
+            false,
             false,
             false,
         );
@@ -539,6 +554,7 @@ mod tests {
             Uint128::new(1000),
             false,
             false,
+            false,
         );
 
         // Quorum was met but none of the above is winning, but it also can't be beat (only a tie at best), should be rejected
@@ -564,6 +580,7 @@ mod tests {
             Uint128::new(100),
             true,
             false,
+            false,
         );
 
         // Quorum was met and proposal expired, should pass
@@ -587,6 +604,7 @@ mod tests {
             Uint128::new(1000000),
             true,
             false,
+            false,
         );
 
         // Quorum was not met and expired, should reject
@@ -609,6 +627,7 @@ mod tests {
             votes,
             Uint128::new(10000000),
             true,
+            false,
             false,
         );
 
@@ -635,6 +654,7 @@ mod tests {
             Uint128::new(13),
             true,
             false,
+            false,
         );
 
         // Should pass if expired
@@ -646,6 +666,7 @@ mod tests {
             voting_strategy,
             votes,
             Uint128::new(13),
+            false,
             false,
             false,
         );
@@ -672,6 +693,7 @@ mod tests {
             Uint128::new(13),
             true,
             false,
+            false,
         );
 
         // Should pass if majority voted
@@ -684,6 +706,7 @@ mod tests {
             votes,
             Uint128::new(14),
             true,
+            false,
             false,
         );
 
@@ -711,6 +734,7 @@ mod tests {
             Uint128::new(10),
             false,
             true,
+            false,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -722,6 +746,7 @@ mod tests {
             Uint128::new(10),
             true,
             true,
+            false,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -746,6 +771,7 @@ mod tests {
             Uint128::new(10),
             false,
             true,
+            false,
         );
         // Everyone voted and proposal is in a tie...
         assert_eq!(prop.total_power, prop.votes.total());
@@ -760,6 +786,7 @@ mod tests {
             Uint128::new(10),
             true,
             true,
+            false,
         );
         // Proposal has expired and ended in a tie => rejection
         assert_eq!(prop.votes.vote_weights[0], prop.votes.vote_weights[1]);
@@ -788,6 +815,7 @@ mod tests {
             Uint128::new(100),
             false,
             true,
+            false,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -799,6 +827,7 @@ mod tests {
             Uint128::new(100),
             true,
             true,
+            false,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -826,6 +855,7 @@ mod tests {
             Uint128::new(100),
             false,
             true,
+            false,
         );
         // Quorum reached, but proposal is still active => no rejection
         assert!(!prop.is_rejected(&env.block).unwrap());
@@ -841,6 +871,7 @@ mod tests {
             Uint128::new(100),
             true,
             true,
+            false,
         );
         // No quorum reached & proposal has expired => rejection
         assert!(prop.is_rejected(&env.block).unwrap());
