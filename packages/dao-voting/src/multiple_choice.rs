@@ -130,6 +130,7 @@ impl CheckedMultipleChoiceOptions {
         write_in: MultipleChoiceOption
     ) -> Result<CheckedMultipleChoiceOptions, StdError> {
         if self.options.len() + 1 > MAX_NUM_CHOICES as usize {
+            // TODO: un-generify this error
             return Err(StdError::GenericErr {
                 msg: "Too many choices".to_string(),
             });
@@ -137,6 +138,7 @@ impl CheckedMultipleChoiceOptions {
 
         let checked_option = CheckedMultipleChoiceOption {
             index: (self.options.len() + 1) as u32,
+            // TODO: add a WriteIn multichoice option?
             option_type: MultipleChoiceOptionType::Standard,
             title: write_in.title,
             description: write_in.description,

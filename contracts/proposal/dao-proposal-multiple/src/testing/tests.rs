@@ -4624,3 +4624,22 @@ fn test_basic_write_in_vote() {
 
 }
 
+#[test]
+fn test_instantiate_write_in_vote_with_no_revoting() {
+    // TODO
+}
+
+#[test]
+fn test_update_config_write_in_no_revoting() {
+    // TODO
+}
+
+#[test]
+fn test_illegal_write_in_vote() {
+    // TODO
+}
+
+#[test]
+fn test_write_in_exceed_max_num_choices() {
+    // TODO
+}

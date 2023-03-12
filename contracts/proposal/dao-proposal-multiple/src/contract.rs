@@ -61,6 +61,10 @@ pub fn instantiate(
         .pre_propose_info
         .into_initial_policy_and_messages(dao.clone())?;
 
+    if msg.allow_write_ins && !msg.allow_revoting {
+        return Err(ContractError::WriteInWithoutRevoting {});
+    }
+
     let config = Config {
         voting_strategy: msg.voting_strategy,
         min_voting_period,
@@ -376,17 +380,15 @@ pub fn execute_write_in_vote(
     rationale: String,
 ) -> Result<Response<Empty>, ContractError> {
 
-    // TODO: validate stuff
-    
     let mut prop = PROPOSALS
         .may_load(deps.storage, proposal_id)?
         .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
     
-    if !prop.allow_write_ins {
-        // TODO: error
+    if !prop.allow_revoting || !prop.allow_write_ins {
+        return Err(ContractError::IllegalWriteIn {});
     }
 
-    // validate and add the new option to existing ones
+    // validate and add the new option to the existing ones
     let new_options = CheckedMultipleChoiceOptions {
         options: prop.choices,
     }.add_option(write_in_vote)?;
@@ -573,6 +575,10 @@ pub fn execute_update_config(
     // Only the DAO may call this method.
     if info.sender != config.dao {
         return Err(ContractError::Unauthorized {});
+    }
+
+    if !allow_revoting && allow_write_ins {
+        return Err(ContractError::WriteInWithoutRevoting {});
     }
 
     voting_strategy.validate()?;

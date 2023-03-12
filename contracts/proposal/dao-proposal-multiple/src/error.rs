@@ -44,6 +44,12 @@ pub enum ContractError {
     #[error("No vote exists for proposal ({id}) and voter ({voter})")]
     NoSuchVote { id: u64, voter: String },
 
+    #[error("Proposal does not support write-in votes.")]
+    IllegalWriteIn {},
+
+    #[error("Write-in voting requires revoting to be enabled.")]
+    WriteInWithoutRevoting {},
+
     #[error("Already voted. This proposal does not support revoting.")]
     AlreadyVoted {},
 
