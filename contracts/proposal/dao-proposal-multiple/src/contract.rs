@@ -388,6 +388,8 @@ pub fn execute_write_in_vote(
         return Err(ContractError::IllegalWriteIn {});
     }
 
+    // validate expiration ?
+
     // validate and add the new option to the existing ones
     let new_options = CheckedMultipleChoiceOptions {
         options: prop.choices,

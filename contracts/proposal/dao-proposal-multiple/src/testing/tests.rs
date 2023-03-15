@@ -18,7 +18,7 @@ use dao_voting::{
     threshold::{PercentageThreshold, Threshold},
 };
 use dao_voting_cw20_staked::msg::ActiveThreshold;
-use std::panic;
+use std::{panic, ops::Deref};
 
 use crate::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
@@ -4547,7 +4547,7 @@ fn test_basic_write_in_vote() {
             min_voting_period: None,
             max_voting_period: Duration::Height(6),
             only_members_execute: false,
-            allow_revoting: false,
+            allow_revoting: true,
             allow_write_ins: true,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
@@ -4569,7 +4569,7 @@ fn test_basic_write_in_vote() {
 
     let gov_state: dao_core::query::DumpStateResponse = app
         .wrap()
-        .query_wasm_smart(core_addr, &dao_core::msg::QueryMsg::DumpState {})
+        .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
         .unwrap();
     let governance_modules = gov_state.proposal_modules;
 
@@ -4622,24 +4622,37 @@ fn test_basic_write_in_vote() {
     )
     .unwrap();
 
+    let prop_list: ProposalListResponse = app
+        .wrap()
+        .query_wasm_smart(
+            govmod,
+            &QueryMsg::ListProposals { start_after: None, limit: None },
+        )
+        .unwrap();
+
+    let proposal = prop_list.proposals.get(0)
+        .unwrap();
+
+    let choices = &proposal.proposal.choices;
+    assert_eq!(choices.len(), 4);
 }
 
 #[test]
 fn test_instantiate_write_in_vote_with_no_revoting() {
-    // TODO
+    unimplemented!()
 }
 
 #[test]
 fn test_update_config_write_in_no_revoting() {
-    // TODO
+    unimplemented!()
 }
 
 #[test]
 fn test_illegal_write_in_vote() {
-    // TODO
+    unimplemented!()
 }
 
 #[test]
 fn test_write_in_exceed_max_num_choices() {
-    // TODO
+    unimplemented!()
 }

@@ -397,3 +397,18 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
     let balance = query_balance_cw20(&app, gov_token.to_string(), CREATOR_ADDR);
     assert_eq!(balance, Uint128::new(110_000_000));
 }
+
+#[test]
+fn test_write_in_impact_on_existing_votes() {
+    unimplemented!()
+}
+
+#[test]
+fn test_write_in_after_passed_prop() {
+    unimplemented!()
+}
+
+#[test]
+fn test_write_in_spam() {
+    unimplemented!()
+}
