@@ -408,6 +408,83 @@ pub fn instantiate_with_cw20_balances_governance(
     .unwrap()
 }
 
+// helper method to get the variables needed to instantiate
+// the proposal module
+pub fn get_core_id_and_instantiate_msg(
+    app: &mut App,
+    proposal_module_instantiate: InstantiateMsg,
+    initial_balances: Option<Vec<Cw20Coin>>,
+) -> (u64, dao_core::msg::InstantiateMsg) {
+    let proposal_module_code_id = app.store_code(proposal_multiple_contract());
+
+    let initial_balances = initial_balances.unwrap_or_else(|| {
+        vec![Cw20Coin {
+            address: CREATOR_ADDR.to_string(),
+            amount: Uint128::new(100_000_000),
+        }]
+    });
+
+    let initial_balances: Vec<Cw20Coin> = {
+        let mut already_seen = vec![];
+        initial_balances
+            .into_iter()
+            .filter(|Cw20Coin { address, amount: _ }| {
+                if already_seen.contains(address) {
+                    false
+                } else {
+                    already_seen.push(address.clone());
+                    true
+                }
+            })
+            .collect()
+    };
+
+    let cw20_id = app.store_code(cw20_base_contract());
+    let cw20_stake_id = app.store_code(cw20_stake_contract());
+    let staked_balances_voting_id = app.store_code(cw20_staked_balances_voting_contract());
+    let core_contract_id = app.store_code(dao_core_contract());
+
+    let instantiate_core = dao_core::msg::InstantiateMsg {
+        admin: None,
+        name: "DAO DAO".to_string(),
+        description: "A DAO that builds DAOs".to_string(),
+        image_url: None,
+        automatically_add_cw20s: true,
+        automatically_add_cw721s: false,
+        voting_module_instantiate_info: ModuleInstantiateInfo {
+            code_id: staked_balances_voting_id,
+            msg: to_binary(&dao_voting_cw20_staked::msg::InstantiateMsg {
+                active_threshold: None,
+                token_info: dao_voting_cw20_staked::msg::TokenInfo::New {
+                    code_id: cw20_id,
+                    label: "DAO DAO governance token.".to_string(),
+                    name: "DAO DAO".to_string(),
+                    symbol: "DAO".to_string(),
+                    decimals: 6,
+                    initial_balances: initial_balances.clone(),
+                    marketing: None,
+                    staking_code_id: cw20_stake_id,
+                    unstaking_duration: Some(Duration::Height(6)),
+                    initial_dao_balance: None,
+                },
+            })
+            .unwrap(),
+            admin: None,
+            label: "DAO DAO voting module".to_string(),
+        },
+        proposal_modules_instantiate_info: vec![ModuleInstantiateInfo {
+            code_id: proposal_module_code_id,
+            label: "DAO DAO governance module.".to_string(),
+            admin: Some(Admin::CoreModule {}),
+            msg: to_binary(&proposal_module_instantiate).unwrap(),
+        }],
+        initial_items: None,
+        dao_uri: None,
+    };
+
+    (core_contract_id, instantiate_core)
+}
+
 pub fn instantiate_with_staked_balances_governance(
     app: &mut App,
     proposal_module_instantiate: InstantiateMsg,

@@ -27,7 +27,7 @@ use dao_voting::{
 };
 use dao_voting::multiple_choice::{CheckedMultipleChoiceOptions, MultipleChoiceOption};
 
-use crate::{msg::MigrateMsg, state::CREATION_POLICY};
+use crate::{msg::MigrateMsg, state::CREATION_POLICY, proposal};
 use crate::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     proposal::{MultipleChoiceProposal, VoteResult},
@@ -384,11 +384,13 @@ pub fn execute_write_in_vote(
         .may_load(deps.storage, proposal_id)?
         .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
     
-    if !prop.allow_revoting || !prop.allow_write_ins {
+    if !prop.allow_write_ins {
         return Err(ContractError::IllegalWriteIn {});
     }
 
-    // validate expiration ?
+    if prop.expiration.is_expired(&env.block) {
+        return Err(ContractError::Expired { id: proposal_id });
+    }
 
     // validate and add the new option to the existing ones
     let new_options = CheckedMultipleChoiceOptions {
