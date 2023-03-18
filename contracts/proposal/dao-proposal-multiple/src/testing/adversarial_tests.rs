@@ -26,10 +26,17 @@ struct CommonTest {
     app: App,
     proposal_module: Addr,
     proposal_id: u64,
+    gov_token: Addr,
 }
-fn setup_test(_messages: Vec<CosmosMsg>) -> CommonTest {
+
+fn setup_test(
+    _messages: Vec<CosmosMsg>,
+    instantiate_msg: Option<InstantiateMsg>,
+) -> CommonTest {
     let mut app = App::default();
-    let instantiate = _get_default_token_dao_proposal_module_instantiate(&mut app);
+    let instantiate = instantiate_msg.unwrap_or_else(|| 
+        _get_default_token_dao_proposal_module_instantiate(&mut app)
+    );
     let core_addr =
         instantiate_with_multiple_staked_balances_governance(&mut app, instantiate, None);
     let proposal_module = query_multiple_proposal_module(&app, &core_addr);
@@ -59,6 +66,7 @@ fn setup_test(_messages: Vec<CosmosMsg>) -> CommonTest {
         app,
         proposal_module,
         proposal_id,
+        gov_token,
     }
 }
 
@@ -71,7 +79,8 @@ fn test_execute_proposal_open() {
         mut app,
         proposal_module,
         proposal_id,
-    } = setup_test(vec![]);
+        ..
+    } = setup_test(vec![], None);
 
     app.update_block(next_block);
 
@@ -103,7 +112,8 @@ fn test_execute_proposal_rejected_closed() {
         mut app,
         proposal_module,
         proposal_id,
-    } = setup_test(vec![]);
+        ..
+    } = setup_test(vec![], None);
 
     app.update_block(next_block);
 
@@ -193,7 +203,8 @@ fn test_execute_proposal_more_than_once() {
         mut app,
         proposal_module,
         proposal_id,
-    } = setup_test(vec![]);
+        ..
+    } = setup_test(vec![], None);
 
     app.update_block(next_block);
 
@@ -262,7 +273,7 @@ fn test_execute_proposal_more_than_once() {
 pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
     let mut app = App::default();
 
-    let instantiate = InstantiateMsg {
+    let instantiate_msg = InstantiateMsg {
         voting_strategy: VotingStrategy::SingleChoice {
             quorum: PercentageThreshold::Percent(Decimal::percent(66)),
         },
@@ -285,7 +296,7 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
 
     let core_addr = instantiate_with_multiple_staked_balances_governance(
         &mut app,
-        instantiate,
+        instantiate_msg,
         Some(vec![
             Cw20Coin {
                 address: CREATOR_ADDR.to_string(),
@@ -331,7 +342,7 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
     let mc_options = MultipleChoiceOptions { options };
 
     let proposal_id = make_proposal(&mut app, &proposal_module, CREATOR_ADDR, mc_options);
-
+    
     // assert initial CREATOR_ADDR address balance is 0
     let balance = query_balance_cw20(&app, gov_token.to_string(), CREATOR_ADDR);
     assert_eq!(balance, Uint128::zero());
@@ -400,11 +411,156 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
 
 #[test]
 fn test_write_in_impact_on_existing_votes() {
-    unimplemented!()
+    let mut app = App::default();
+
+    let instantiate_msg = InstantiateMsg {
+        voting_strategy: VotingStrategy::SingleChoice {
+            quorum: PercentageThreshold::Percent(Decimal::percent(66)),
+        },
+        max_voting_period: Duration::Height(5),
+        min_voting_period: None,
+        only_members_execute: true,
+        allow_revoting: true,
+        allow_write_ins: true,
+        pre_propose_info: get_pre_propose_info(
+            &mut app,
+            Some(UncheckedDepositInfo {
+                denom: dao_voting::deposit::DepositToken::VotingModuleToken {},
+                amount: Uint128::new(10_000_000),
+                refund_policy: DepositRefundPolicy::OnlyPassed,
+            }),
+            false,
+        ),
+        close_proposal_on_execution_failure: true,
+    };
+
+    let core_addr = instantiate_with_multiple_staked_balances_governance(
+        &mut app,
+        instantiate_msg,
+        Some(vec![
+            Cw20Coin {
+                address: CREATOR_ADDR.to_string(),
+                amount: Uint128::new(70_000_000),
+            },
+            Cw20Coin {
+                address: ALTERNATIVE_ADDR.to_string(),
+                amount: Uint128::new(10_000_000),
+            },
+            Cw20Coin {
+                address: "bekauz".to_string(),
+                amount: Uint128::new(20_000_000),
+            },
+        ]),
+    );
+    let proposal_module = query_multiple_proposal_module(&app, &core_addr);
+    let gov_token = query_dao_token(&app, &core_addr);
+
+    // Mint some tokens to pay the proposal deposit.
+    mint_cw20s(&mut app, &gov_token, &core_addr, CREATOR_ADDR, 10_000_000);
+
+    // Option 0 would mint 100_000_000 tokens for CREATOR_ADDR
+    let msg = cw20::Cw20ExecuteMsg::Mint {
+        recipient: CREATOR_ADDR.to_string(),
+        amount: Uint128::new(100_000_000),
+    };
+    let binary_msg = to_binary(&msg).unwrap();
+
+    let options = vec![
+        MultipleChoiceOption {
+            title: "title 1".to_string(),
+            description: "multiple choice option 1".to_string(),
+            msgs: vec![WasmMsg::Execute {
+                contract_addr: gov_token.to_string(),
+                msg: binary_msg,
+                funds: vec![],
+            }
+            .into()],
+        },
+        MultipleChoiceOption {
+            title: "title 2".to_string(),
+            description: "multiple choice option 2".to_string(),
+            msgs: vec![],
+        },
+    ];
+
+    let mc_options = MultipleChoiceOptions { options };
+
+    let proposal_id = make_proposal(&mut app, &proposal_module, CREATOR_ADDR, mc_options);
+    
+    let balance = query_balance_cw20(&app, gov_token.to_string(), CREATOR_ADDR);
+    assert_eq!(balance, Uint128::zero());
+
+    app.update_block(next_block);
+
+    // some votes on existing options
+    app.execute_contract(
+        Addr::unchecked(CREATOR_ADDR),
+        proposal_module.clone(),
+        &ExecuteMsg::Vote {
+            proposal_id,
+            vote: MultipleChoiceVote { option_id: 0 },
+            rationale: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    app.execute_contract(
+        Addr::unchecked(ALTERNATIVE_ADDR),
+        proposal_module.clone(),
+        &ExecuteMsg::Vote {
+            proposal_id,
+            vote: MultipleChoiceVote { option_id: 1 },
+            rationale: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    app.update_block(next_block);
+
+    app.execute_contract(
+        Addr::unchecked(CREATOR_ADDR),
+        proposal_module.clone(),
+        &ExecuteMsg::WriteInVote { 
+            proposal_id, 
+            write_in_vote: MultipleChoiceOption {
+                title: "title 3".to_string(),
+                description: "multiple choice option 3".to_string(),
+                msgs: vec![],
+            }, 
+        },
+        &[],
+    )
+    .unwrap();
+
+    app.update_block(next_block);
+
+    app.execute_contract(
+        Addr::unchecked("bekauz"),
+        proposal_module.clone(),
+        &ExecuteMsg::Vote {
+            proposal_id,
+            vote: MultipleChoiceVote { option_id: 3 },
+            rationale: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    app.update_block(next_block);
+    app.update_block(next_block);
+
+    let prop = query_proposal(&app, &proposal_module, proposal_id);
+    assert_eq!(prop.proposal.status, Status::Passed);
+    assert_eq!(prop.proposal.votes.vote_weights[0], Uint128::new(70000000));
+    assert_eq!(prop.proposal.votes.vote_weights[1], Uint128::new(10000000));
+    assert_eq!(prop.proposal.votes.vote_weights[2], Uint128::zero());
+    assert_eq!(prop.proposal.votes.vote_weights[3], Uint128::new(20000000));
 }
 
 #[test]
-fn test_write_in_after_passed_prop() {
+fn test_write_in_impact_on_existing_votes_not_passed() {
     unimplemented!()
 }
 

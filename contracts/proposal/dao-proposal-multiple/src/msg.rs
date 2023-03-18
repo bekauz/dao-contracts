@@ -76,9 +76,6 @@ pub enum ExecuteMsg {
         proposal_id: u64,
         /// The senders proposed voting option.
         write_in_vote: MultipleChoiceOption,
-        /// A non-optional rationale for why this write-in vote was
-        /// cast.
-        rationale: String,
     },
     /// Causes the messages associated with a passed proposal to be
     /// executed by the DAO.

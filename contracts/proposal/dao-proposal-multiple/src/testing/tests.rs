@@ -4615,7 +4615,6 @@ fn test_basic_write_in_vote() {
                 description: "do this and that".to_string(),
                 msgs: vec![],
             },
-            rationale: "all other options are bad".to_string()
         },
         &[],
     )
@@ -4819,7 +4818,6 @@ fn test_illegal_write_in_vote() {
                 description: "do this and that".to_string(),
                 msgs: vec![],
             },
-            rationale: "all other options are bad".to_string()
         },
         &[],
     )
@@ -4909,7 +4907,6 @@ fn test_write_in_expired() {
                 description: "do this and that".to_string(),
                 msgs: vec![],
             },
-            rationale: "all other options are bad".to_string()
         },
         &[],
     )
@@ -4917,4 +4914,5 @@ fn test_write_in_expired() {
     .downcast()
     .unwrap();
 
-    assert!(matches!(err, ContractError::Expired { .. }))}
+    assert!(matches!(err, ContractError::Expired { .. }))
+}

@@ -27,7 +27,7 @@ use dao_voting::{
 };
 use dao_voting::multiple_choice::{CheckedMultipleChoiceOptions, MultipleChoiceOption};
 
-use crate::{msg::MigrateMsg, state::CREATION_POLICY, proposal};
+use crate::{msg::MigrateMsg, state::CREATION_POLICY};
 use crate::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     proposal::{MultipleChoiceProposal, VoteResult},
@@ -118,8 +118,7 @@ pub fn execute(
         ExecuteMsg::WriteInVote {
             proposal_id,
             write_in_vote,
-            rationale,
-        } => execute_write_in_vote(deps, env, info, proposal_id, write_in_vote, rationale),
+        } => execute_write_in_vote(deps, env, info, proposal_id, write_in_vote),
         ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => execute_close(deps, env, info, proposal_id),
         ExecuteMsg::UpdateConfig {
@@ -374,10 +373,9 @@ pub fn execute_vote(
 pub fn execute_write_in_vote(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     proposal_id: u64,
     write_in_vote: MultipleChoiceOption,
-    rationale: String,
 ) -> Result<Response<Empty>, ContractError> {
 
     let mut prop = PROPOSALS
@@ -388,16 +386,21 @@ pub fn execute_write_in_vote(
         return Err(ContractError::IllegalWriteIn {});
     }
 
+    // TODO: add zero voting power check
+
     if prop.expiration.is_expired(&env.block) {
         return Err(ContractError::Expired { id: proposal_id });
     }
 
     // validate and add the new option to the existing ones
-    let new_options = CheckedMultipleChoiceOptions {
+    let new_checked_options = CheckedMultipleChoiceOptions {
         options: prop.choices,
     }.add_option(write_in_vote)?;
+    prop.choices = new_checked_options.options;
 
-    prop.choices = new_options.options;
+    let new_weights = prop.votes.add_write_in_option()?;
+    prop.votes = new_weights;
+
     PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
     Ok(Response::default()
