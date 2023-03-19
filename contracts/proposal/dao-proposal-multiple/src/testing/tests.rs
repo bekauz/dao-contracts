@@ -4606,7 +4606,7 @@ fn test_basic_write_in_vote() {
 
     // add one more
     app.execute_contract(
-        Addr::unchecked(CREATOR_ADDR),
+        Addr::unchecked("bekauz"),
         govmod.clone(),
         &ExecuteMsg::WriteInVote {
             proposal_id: 1,
@@ -4915,4 +4915,89 @@ fn test_write_in_expired() {
     .unwrap();
 
     assert!(matches!(err, ContractError::Expired { .. }))
+}
+
+#[test]
+fn test_write_in_non_member() {
+    let mut app = App::default();
+    let core_addr = instantiate_with_staked_balances_governance(
+        &mut app,
+        InstantiateMsg {
+            min_voting_period: None,
+            max_voting_period: Duration::Height(6),
+            only_members_execute: false,
+            allow_revoting: true,
+            allow_write_ins: true,
+            voting_strategy: VotingStrategy::SingleChoice {
+                quorum: PercentageThreshold::Majority {},
+            },
+            close_proposal_on_execution_failure: false,
+            pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
+        },
+        Some(vec![
+            Cw20Coin {
+                address: "bekauz".to_string(),
+                amount: Uint128::new(100_000_000),
+            },
+        ]),
+    );
+
+    let gov_state: dao_core::query::DumpStateResponse = app
+    .wrap()
+    .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
+    .unwrap();
+    let governance_modules = gov_state.proposal_modules;
+    let govmod = governance_modules.into_iter().next().unwrap().address;
+
+    let options = vec![
+        MultipleChoiceOption {
+            description: "multiple choice option 1".to_string(),
+            msgs: vec![],
+            title: "title 1".to_string(),
+        },
+        MultipleChoiceOption {
+            description: "multiple choice option 2".to_string(),
+            msgs: vec![],
+            title: "title 2".to_string(),
+        },
+    ];
+
+    let mc_options = MultipleChoiceOptions { options };
+
+    // create the prop with 2 options
+    app.execute_contract(
+        Addr::unchecked(CREATOR_ADDR),
+        govmod.clone(),
+        &ExecuteMsg::Propose {
+            title: "A proposal".to_string(),
+            description: "A simple proposal".to_string(),
+            choices: mc_options,
+            proposer: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    // expire the prop
+    app.update_block(next_block);
+
+    // attempt to add one more and error because prop expired
+    let err: ContractError = app.execute_contract(
+        Addr::unchecked(ALTERNATIVE_ADDR),
+        govmod.clone(),
+        &ExecuteMsg::WriteInVote {
+            proposal_id: 1,
+            write_in_vote: MultipleChoiceOption {
+                title: "Write in option".to_string(),
+                description: "do this and that".to_string(),
+                msgs: vec![],
+            },
+        },
+        &[],
+    )
+    .unwrap_err()
+    .downcast()
+    .unwrap();
+
+    assert!(matches!(err, ContractError::NotRegistered { .. }))
 }

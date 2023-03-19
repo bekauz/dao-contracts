@@ -373,7 +373,7 @@ pub fn execute_vote(
 pub fn execute_write_in_vote(
     deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     proposal_id: u64,
     write_in_vote: MultipleChoiceOption,
 ) -> Result<Response<Empty>, ContractError> {
@@ -386,10 +386,20 @@ pub fn execute_write_in_vote(
         return Err(ContractError::IllegalWriteIn {});
     }
 
-    // TODO: add zero voting power check
-
     if prop.expiration.is_expired(&env.block) {
         return Err(ContractError::Expired { id: proposal_id });
+    }
+
+    // only members can write-in
+    let config = CONFIG.load(deps.storage)?;
+    let vote_power = get_voting_power(
+        deps.as_ref(),
+        info.sender.clone(),
+        &config.dao,
+        Some(prop.start_height),
+    )?;
+    if vote_power.is_zero() {
+        return Err(ContractError::NotRegistered {});
     }
 
     // validate and add the new option to the existing ones
@@ -398,6 +408,7 @@ pub fn execute_write_in_vote(
     }.add_option(write_in_vote)?;
     prop.choices = new_checked_options.options;
 
+    // add a new zero-weight vote
     let new_weights = prop.votes.add_write_in_option()?;
     prop.votes = new_weights;
 
