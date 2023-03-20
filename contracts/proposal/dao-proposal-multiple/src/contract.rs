@@ -377,8 +377,7 @@ pub fn execute_write_in_vote(
     proposal_id: u64,
     write_in_vote: MultipleChoiceOption,
 ) -> Result<Response<Empty>, ContractError> {
-
-    let mut prop = PROPOSALS
+    let prop = PROPOSALS
         .may_load(deps.storage, proposal_id)?
         .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
     
@@ -402,17 +401,10 @@ pub fn execute_write_in_vote(
         return Err(ContractError::NotRegistered {});
     }
 
-    // validate and add the new option to the existing ones
-    let new_checked_options = CheckedMultipleChoiceOptions {
-        options: prop.choices,
-    }.add_option(write_in_vote)?;
-    prop.choices = new_checked_options.options;
+    // validates and adds the write in option
+    let updated_prop = prop.add_write_in_option(write_in_vote)?;
 
-    // add a new zero-weight vote
-    let new_weights = prop.votes.add_write_in_option()?;
-    prop.votes = new_weights;
-
-    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+    PROPOSALS.save(deps.storage, proposal_id, &updated_prop)?;
 
     Ok(Response::default()
         .add_attribute("action", "write_in"))

@@ -64,23 +64,6 @@ impl MultipleChoiceVotes {
         Ok(())
     }
 
-
-    pub fn add_write_in_option(&self) -> StdResult<MultipleChoiceVotes> {
-        if self.vote_weights.len() + 1 > MAX_NUM_CHOICES as usize {
-            // TODO: un-generify this error
-            return Err(StdError::GenericErr {
-                msg: "Too many choices".to_string(),
-            });
-        }
-
-        let mut new_weights = self.vote_weights.clone();
-        new_weights.push(Uint128::zero());
-
-        Ok(MultipleChoiceVotes {
-            vote_weights: new_weights,
-        })        
-    }
-
     // Remove a vote from the tally
     pub fn remove_vote(&mut self, vote: MultipleChoiceVote, weight: Uint128) -> StdResult<()> {
         self.vote_weights[vote.option_id as usize] = self.vote_weights[vote.option_id as usize]
@@ -139,39 +122,6 @@ pub struct CheckedMultipleChoiceOption {
     pub description: String,
     pub msgs: Vec<CosmosMsg<Empty>>,
     pub vote_count: Uint128,
-}
-
-impl CheckedMultipleChoiceOptions {
-    pub fn add_option(
-        self,
-        write_in: MultipleChoiceOption
-    ) -> Result<CheckedMultipleChoiceOptions, StdError> {
-        if self.options.len() + 1 > MAX_NUM_CHOICES as usize {
-            // TODO: un-generify this error
-            return Err(StdError::GenericErr {
-                msg: "Too many choices".to_string(),
-            });
-        }
-
-        let checked_option = CheckedMultipleChoiceOption {
-            index: (self.options.len()) as u32,
-            option_type: MultipleChoiceOptionType::Standard,
-            title: write_in.title,
-            description: write_in.description,
-            msgs: write_in.msgs,
-            vote_count: Uint128::zero(),
-        };
-
-        let mut new_options = self.options;
-        // push the new option to the end of existing votes to not
-        // affect the existing vote options which are identified by
-        // their indices (0 to #(number of options))
-        new_options.push(checked_option);
-
-        Ok(CheckedMultipleChoiceOptions {
-            options: new_options,
-        })
-    }
 }
 
 impl MultipleChoiceOptions {
@@ -313,50 +263,5 @@ mod test {
         let mc_options = super::MultipleChoiceOptions { options };
         mc_options.into_checked().unwrap();
     }
-
-    #[test]
-    fn test_add_multi_choice_option_respects_existing_order() {
-        let options = vec![
-            super::MultipleChoiceOption {
-                description: "multiple choice option 1".to_string(),
-                msgs: vec![],
-                title: "option1".to_string(),
-            },
-            super::MultipleChoiceOption {
-                description: "multiple choice option 2".to_string(),
-                msgs: vec![],
-                title: "option2".to_string(),
-            },
-        ];
-
-        let mc_options = super::MultipleChoiceOptions { options };
-        let checked_mc_options = mc_options
-        .into_checked()
-        .unwrap();
-        
-        assert_eq!(checked_mc_options.options.get(0).unwrap().index, 0);
-        assert_eq!(checked_mc_options.options.get(0).unwrap().title, "option1".to_string());
-        assert_eq!(checked_mc_options.options.get(1).unwrap().index, 1);
-        assert_eq!(checked_mc_options.options.get(1).unwrap().title, "option2".to_string());
-        assert_eq!(checked_mc_options.options.get(2).unwrap().index, 2);
-        assert_eq!(checked_mc_options.options.get(2).unwrap().title, "None of the above".to_string());
-
-        let checked_mc_options = checked_mc_options.add_option(
-            super::MultipleChoiceOption {
-                description: "multiple choice option 3".to_string(),
-                msgs: vec![],
-                title: "option3".to_string(),
-            },
-        ).unwrap();
-
-        assert_eq!(checked_mc_options.options.get(0).unwrap().index, 0);
-        assert_eq!(checked_mc_options.options.get(0).unwrap().title, "option1".to_string());
-        assert_eq!(checked_mc_options.options.get(1).unwrap().index, 1);
-        assert_eq!(checked_mc_options.options.get(1).unwrap().title, "option2".to_string());
-        assert_eq!(checked_mc_options.options.get(2).unwrap().index, 2);
-        assert_eq!(checked_mc_options.options.get(2).unwrap().title, "None of the above".to_string());
-        assert_eq!(checked_mc_options.options.get(3).unwrap().index, 3);
-        assert_eq!(checked_mc_options.options.get(3).unwrap().title, "option3".to_string());
-    }   
 
 }

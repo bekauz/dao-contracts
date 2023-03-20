@@ -3,7 +3,7 @@ use cosmwasm_std::{Addr, BlockInfo, StdError, StdResult, Uint128};
 use cw_utils::Expiration;
 use dao_voting::{
     multiple_choice::{
-        CheckedMultipleChoiceOption, MultipleChoiceOptionType, MultipleChoiceVotes, VotingStrategy,
+        CheckedMultipleChoiceOption, MultipleChoiceOptionType, MultipleChoiceVotes, VotingStrategy, MultipleChoiceOption, MAX_NUM_CHOICES,
     },
     status::Status,
     voting::does_vote_count_pass,
@@ -43,6 +43,8 @@ pub struct MultipleChoiceProposal {
     /// When enabled, proposals can only be executed after the voting
     /// period has ended and the proposal passed.
     pub allow_revoting: bool,
+    /// Allows users to submit new voting options.
+    /// Requires revoting to be enabled in order to be set to true.
     pub allow_write_ins: bool,
 }
 
@@ -62,6 +64,36 @@ impl MultipleChoiceProposal {
     pub fn into_response(mut self, block: &BlockInfo, id: u64) -> StdResult<ProposalResponse> {
         self.update_status(block)?;
         Ok(ProposalResponse { id, proposal: self })
+    }
+
+    pub fn add_write_in_option(
+        mut self, 
+        write_in_vote: MultipleChoiceOption
+    ) -> StdResult<MultipleChoiceProposal> {
+        if self.choices.len() + 1 > MAX_NUM_CHOICES as usize {
+            // TODO: un-generify this error
+            return Err(StdError::GenericErr {
+                msg: "Too many choices".to_string(),
+            });
+        }
+
+        let checked_option = CheckedMultipleChoiceOption {
+            index: (self.choices.len()) as u32,
+            option_type: MultipleChoiceOptionType::Standard,
+            title: write_in_vote.title,
+            description: write_in_vote.description,
+            msgs: write_in_vote.msgs,
+            vote_count: Uint128::zero(),
+        };
+
+        // votes are tallied by their index (0 to #(number of options))
+        // so it's important to respect the existing order. 
+        // push the new option and a zero vote weight to the
+        // end of respective vectors
+        self.choices.push(checked_option);
+        self.votes.vote_weights.push(Uint128::zero());
+
+        Ok(self)
     }
 
     /// Gets the current status of the proposal.
@@ -876,4 +908,50 @@ mod tests {
         // No quorum reached & proposal has expired => rejection
         assert!(prop.is_rejected(&env.block).unwrap());
     }
+
+    // #[test]
+    // fn test_add_multi_choice_option_respects_existing_order() {
+    //     let options = vec![
+    //         MultipleChoiceOption {
+    //             description: "multiple choice option 1".to_string(),
+    //             msgs: vec![],
+    //             title: "option1".to_string(),
+    //         },
+    //         MultipleChoiceOption {
+    //             description: "multiple choice option 2".to_string(),
+    //             msgs: vec![],
+    //             title: "option2".to_string(),
+    //         },
+    //     ];
+
+    //     let mc_options = MultipleChoiceOptions { options };
+    //     let checked_mc_options = mc_options
+    //     .into_checked()
+    //     .unwrap();
+        
+    //     assert_eq!(checked_mc_options.options.get(0).unwrap().index, 0);
+    //     assert_eq!(checked_mc_options.options.get(0).unwrap().title, "option1".to_string());
+    //     assert_eq!(checked_mc_options.options.get(1).unwrap().index, 1);
+    //     assert_eq!(checked_mc_options.options.get(1).unwrap().title, "option2".to_string());
+    //     assert_eq!(checked_mc_options.options.get(2).unwrap().index, 2);
+    //     assert_eq!(checked_mc_options.options.get(2).unwrap().title, "None of the above".to_string());
+
+    //     let checked_mc_options = checked_mc_options.add_option(
+    //         super::MultipleChoiceOption {
+    //             description: "multiple choice option 3".to_string(),
+    //             msgs: vec![],
+    //             title: "option3".to_string(),
+    //         },
+    //     ).unwrap();
+
+    //     assert_eq!(checked_mc_options.options.get(0).unwrap().index, 0);
+    //     assert_eq!(checked_mc_options.options.get(0).unwrap().title, "option1".to_string());
+    //     assert_eq!(checked_mc_options.options.get(1).unwrap().index, 1);
+    //     assert_eq!(checked_mc_options.options.get(1).unwrap().title, "option2".to_string());
+    //     assert_eq!(checked_mc_options.options.get(2).unwrap().index, 2);
+    //     assert_eq!(checked_mc_options.options.get(2).unwrap().title, "None of the above".to_string());
+    //     assert_eq!(checked_mc_options.options.get(3).unwrap().index, 3);
+    //     assert_eq!(checked_mc_options.options.get(3).unwrap().title, "option3".to_string());
+    // }   
+
 }
