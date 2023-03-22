@@ -58,6 +58,7 @@ pub fn _get_default_token_dao_proposal_module_instantiate(app: &mut App) -> Inst
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             app,
             Some(UncheckedDepositInfo {
@@ -83,6 +84,7 @@ fn _get_default_non_token_dao_proposal_module_instantiate(app: &mut App) -> Inst
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(app, None, false),
         close_proposal_on_execution_failure: true,
     }

@@ -13,7 +13,9 @@ use dao_interface::voting::IsActiveResponse;
 use dao_pre_propose_multiple::contract::ExecuteMsg as PreProposeMsg;
 use dao_proposal_hooks::{new_proposal_hooks, proposal_status_changed_hooks};
 use dao_vote_hooks::new_vote_hooks;
+use dao_voting::multiple_choice::{CheckedMultipleChoiceOptions, MultipleChoiceOption};
 use dao_voting::{
+    deposit::{CheckedDepositInfo, UncheckedDepositInfo},
     multiple_choice::{
         MultipleChoiceOptions, MultipleChoiceVote, MultipleChoiceVotes, VotingStrategy,
     },
@@ -25,7 +27,6 @@ use dao_voting::{
     status::Status,
     voting::{get_total_power, get_voting_power, validate_voting_period},
 };
-use dao_voting::multiple_choice::{CheckedMultipleChoiceOptions, MultipleChoiceOption};
 
 use crate::{msg::MigrateMsg, state::CREATION_POLICY};
 use crate::{
@@ -65,6 +66,11 @@ pub fn instantiate(
         return Err(ContractError::WriteInWithoutRevoting {});
     }
 
+    let deposit_info = msg
+        .write_in_deposit_info
+        .map(|info| info.into_checked(deps.as_ref(), dao.clone()))
+        .transpose()?;
+
     let config = Config {
         voting_strategy: msg.voting_strategy,
         min_voting_period,
@@ -72,6 +78,7 @@ pub fn instantiate(
         only_members_execute: msg.only_members_execute,
         allow_revoting: msg.allow_revoting,
         allow_write_ins: msg.allow_write_ins,
+        write_in_deposit_info: deposit_info,
         dao,
         close_proposal_on_execution_failure: msg.close_proposal_on_execution_failure,
     };
@@ -128,6 +135,7 @@ pub fn execute(
             only_members_execute,
             allow_revoting,
             allow_write_ins,
+            write_in_deposit_info,
             dao,
             close_proposal_on_execution_failure,
         } => execute_update_config(
@@ -139,6 +147,7 @@ pub fn execute(
             only_members_execute,
             allow_revoting,
             allow_write_ins,
+            write_in_deposit_info,
             dao,
             close_proposal_on_execution_failure,
         ),
@@ -229,6 +238,7 @@ pub fn execute_propose(
             votes: MultipleChoiceVotes::zero(checked_multiple_choice_options.len()),
             allow_revoting: config.allow_revoting,
             allow_write_ins: config.allow_write_ins,
+            write_in_deposit_info: config.write_in_deposit_info,
             choices: checked_multiple_choice_options,
         };
         // Update the proposal's status. Addresses case where proposal
@@ -380,7 +390,15 @@ pub fn execute_write_in_vote(
     let prop = PROPOSALS
         .may_load(deps.storage, proposal_id)?
         .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
-    
+
+    // if write-in deposit fee is enabled, get the messages
+    let deposit_messages = if let Some(ref deposit_info) = prop.write_in_deposit_info {
+        deposit_info.check_native_deposit_paid(&info)?;
+        deposit_info.get_take_deposit_messages(&info.sender, &env.contract.address)?
+    } else {
+        vec![]
+    };
+
     if !prop.allow_write_ins {
         return Err(ContractError::IllegalWriteIn {});
     }
@@ -407,7 +425,8 @@ pub fn execute_write_in_vote(
     PROPOSALS.save(deps.storage, proposal_id, &updated_prop)?;
 
     Ok(Response::default()
-        .add_attribute("action", "write_in"))
+        .add_attribute("action", "write_in")
+        .add_messages(deposit_messages))
 }
 
 pub fn execute_execute(
@@ -577,6 +596,7 @@ pub fn execute_update_config(
     only_members_execute: bool,
     allow_revoting: bool,
     allow_write_ins: bool,
+    write_in_deposit_info: Option<UncheckedDepositInfo>,
     dao: String,
     close_proposal_on_execution_failure: bool,
 ) -> Result<Response, ContractError> {
@@ -598,6 +618,10 @@ pub fn execute_update_config(
     let (min_voting_period, max_voting_period) =
         validate_voting_period(min_voting_period, max_voting_period)?;
 
+    let write_in_deposit_info = write_in_deposit_info
+        .map(|info| info.into_checked(deps.as_ref(), dao.clone()))
+        .transpose()?;
+
     CONFIG.save(
         deps.storage,
         &Config {
@@ -607,6 +631,7 @@ pub fn execute_update_config(
             only_members_execute,
             allow_revoting,
             allow_write_ins,
+            write_in_deposit_info,
             dao,
             close_proposal_on_execution_failure,
         },

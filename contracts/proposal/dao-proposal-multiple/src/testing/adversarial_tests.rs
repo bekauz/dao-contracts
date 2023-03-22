@@ -29,14 +29,10 @@ struct CommonTest {
     gov_token: Addr,
 }
 
-fn setup_test(
-    _messages: Vec<CosmosMsg>,
-    instantiate_msg: Option<InstantiateMsg>,
-) -> CommonTest {
+fn setup_test(_messages: Vec<CosmosMsg>, instantiate_msg: Option<InstantiateMsg>) -> CommonTest {
     let mut app = App::default();
-    let instantiate = instantiate_msg.unwrap_or_else(|| 
-        _get_default_token_dao_proposal_module_instantiate(&mut app)
-    );
+    let instantiate = instantiate_msg
+        .unwrap_or_else(|| _get_default_token_dao_proposal_module_instantiate(&mut app));
     let core_addr =
         instantiate_with_multiple_staked_balances_governance(&mut app, instantiate, None);
     let proposal_module = query_multiple_proposal_module(&app, &core_addr);
@@ -282,6 +278,7 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             &mut app,
             Some(UncheckedDepositInfo {
@@ -342,7 +339,7 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
     let mc_options = MultipleChoiceOptions { options };
 
     let proposal_id = make_proposal(&mut app, &proposal_module, CREATOR_ADDR, mc_options);
-    
+
     // assert initial CREATOR_ADDR address balance is 0
     let balance = query_balance_cw20(&app, gov_token.to_string(), CREATOR_ADDR);
     assert_eq!(balance, Uint128::zero());
@@ -422,6 +419,7 @@ fn test_write_in_impact_on_existing_votes() {
         only_members_execute: true,
         allow_revoting: true,
         allow_write_ins: true,
+        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             &mut app,
             Some(UncheckedDepositInfo {
@@ -486,7 +484,7 @@ fn test_write_in_impact_on_existing_votes() {
     let mc_options = MultipleChoiceOptions { options };
 
     let proposal_id = make_proposal(&mut app, &proposal_module, CREATOR_ADDR, mc_options);
-    
+
     let balance = query_balance_cw20(&app, gov_token.to_string(), CREATOR_ADDR);
     assert_eq!(balance, Uint128::zero());
 
@@ -522,13 +520,13 @@ fn test_write_in_impact_on_existing_votes() {
     app.execute_contract(
         Addr::unchecked(CREATOR_ADDR),
         proposal_module.clone(),
-        &ExecuteMsg::WriteInVote { 
-            proposal_id, 
+        &ExecuteMsg::WriteInVote {
+            proposal_id,
             write_in_vote: MultipleChoiceOption {
                 title: "title 3".to_string(),
                 description: "multiple choice option 3".to_string(),
                 msgs: vec![],
-            }, 
+            },
         },
         &[],
     )

@@ -128,6 +128,7 @@ where
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         close_proposal_on_execution_failure: true,
         pre_propose_info,

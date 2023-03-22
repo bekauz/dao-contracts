@@ -1,4 +1,6 @@
-use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, Decimal, Empty, Timestamp, Uint128, WasmMsg};
+use cosmwasm_std::{
+    coins, to_binary, Addr, Coin, CosmosMsg, Decimal, Empty, Timestamp, Uint128, WasmMsg,
+};
 use cw20::Cw20Coin;
 use cw_denom::{CheckedDenom, UncheckedDenom};
 use cw_hooks::HooksResponse;
@@ -28,8 +30,8 @@ use crate::{
         do_votes::do_test_votes_cw20_balances,
         execute::make_proposal,
         instantiate::{
-            instantiate_with_cw20_balances_governance, instantiate_with_staked_balances_governance,
-            instantiate_with_staking_active_threshold, get_core_id_and_instantiate_msg,
+            get_core_id_and_instantiate_msg, instantiate_with_cw20_balances_governance,
+            instantiate_with_staked_balances_governance, instantiate_with_staking_active_threshold,
         },
         queries::{
             query_balance_cw20, query_balance_native, query_cw20_token_staking_contracts,
@@ -116,6 +118,7 @@ fn test_propose() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy: voting_strategy.clone(),
         min_voting_period: None,
         close_proposal_on_execution_failure: true,
@@ -132,6 +135,7 @@ fn test_propose() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         dao: core_addr,
         voting_strategy: voting_strategy.clone(),
         min_voting_period: None,
@@ -176,6 +180,7 @@ fn test_propose() {
         },
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         min_voting_period: None,
     };
 
@@ -200,6 +205,7 @@ fn test_propose_wrong_num_choices() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy: voting_strategy.clone(),
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -216,6 +222,7 @@ fn test_propose_wrong_num_choices() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         dao: core_addr,
         voting_strategy,
     };
@@ -279,6 +286,7 @@ fn test_proposal_count_initialized_to_zero() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
     let core_addr = instantiate_with_staked_balances_governance(&mut app, msg, None);
@@ -313,6 +321,7 @@ fn test_no_early_pass_with_min_duration() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -409,6 +418,7 @@ fn test_propose_with_messages() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
 
@@ -446,6 +456,7 @@ fn test_propose_with_messages() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         dao: "dao".to_string(),
     };
 
@@ -529,6 +540,7 @@ fn test_min_duration_units_missmatch() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -562,6 +574,7 @@ fn test_min_duration_larger_than_proposal_duration() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -594,6 +607,7 @@ fn test_min_duration_same_as_proposal_duration() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -707,6 +721,7 @@ fn test_voting_module_token_proposal_deposit_instantiate() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -778,6 +793,7 @@ fn test_different_token_proposal_deposit() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -840,6 +856,7 @@ fn test_bad_token_proposal_deposit() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -873,6 +890,7 @@ fn test_take_proposal_deposit() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -977,6 +995,7 @@ fn test_native_proposal_deposit() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -1402,6 +1421,7 @@ fn test_cant_propose_zero_power() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -1575,6 +1595,7 @@ fn test_cant_execute_not_member() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -1666,6 +1687,7 @@ fn test_cant_execute_not_member_when_proposal_created() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -1784,6 +1806,7 @@ fn test_open_proposal_submission() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: get_pre_propose_info(&mut app, None, true),
     };
@@ -1821,6 +1844,7 @@ fn test_open_proposal_submission() {
         min_voting_period: None,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         total_power: Uint128::new(100_000_000),
         status: Status::Open,
         voting_strategy: VotingStrategy::SingleChoice {
@@ -2079,6 +2103,7 @@ fn test_execute_expired_proposal() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -2243,6 +2268,7 @@ fn test_update_config() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             dao: dao.to_string(),
         },
         &[],
@@ -2263,6 +2289,7 @@ fn test_update_config() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             dao: Addr::unchecked(CREATOR_ADDR).to_string(),
         },
         &[],
@@ -2281,6 +2308,7 @@ fn test_update_config() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         dao: Addr::unchecked(CREATOR_ADDR),
     };
     assert_eq!(govmod_config, expected);
@@ -2300,6 +2328,7 @@ fn test_update_config() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             dao: Addr::unchecked(CREATOR_ADDR).to_string(),
         },
         &[],
@@ -2375,6 +2404,7 @@ fn test_query_list_proposals() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy: voting_strategy.clone(),
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -2457,6 +2487,7 @@ fn test_query_list_proposals() {
             },
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             min_voting_period: None,
         },
     };
@@ -2486,6 +2517,7 @@ fn test_query_list_proposals() {
             },
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             min_voting_period: None,
         },
     };
@@ -2511,6 +2543,7 @@ fn test_hooks() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -2638,6 +2671,7 @@ fn test_active_threshold_absolute() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -2766,6 +2800,7 @@ fn test_active_threshold_percent() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -2895,6 +2930,7 @@ fn test_active_threshold_none() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -3003,6 +3039,7 @@ fn test_revoting() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -3136,6 +3173,7 @@ fn test_allow_revoting_config_changes() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -3194,6 +3232,7 @@ fn test_allow_revoting_config_changes() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             dao: core_addr.to_string(),
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
@@ -3289,6 +3328,7 @@ fn test_revoting_same_vote_twice() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -3384,6 +3424,7 @@ fn test_invalid_revote_does_not_invalidate_initial_vote() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -3576,6 +3617,7 @@ fn test_close_failed_proposal() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
     };
@@ -3711,6 +3753,7 @@ fn test_close_failed_proposal() {
                                     only_members_execute: original.only_members_execute,
                                     allow_revoting: false,
                                     allow_write_ins: false,
+                                    write_in_deposit_info: None,
                                     dao: original.dao.to_string(),
                                     close_proposal_on_execution_failure: false,
                                 })
@@ -3815,6 +3858,7 @@ fn test_no_double_refund_on_execute_fail_and_close() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         close_proposal_on_execution_failure: true,
         pre_propose_info: get_pre_propose_info(
             &mut app,
@@ -4001,6 +4045,7 @@ pub fn test_not_allow_voting_on_expired_proposal() {
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
+        write_in_deposit_info: None,
         voting_strategy: VotingStrategy::SingleChoice {
             quorum: PercentageThreshold::Majority {},
         },
@@ -4094,6 +4139,7 @@ fn test_next_proposal_id() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4166,6 +4212,7 @@ fn test_vote_with_rationale() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4263,6 +4310,7 @@ fn test_revote_with_rationale() {
             only_members_execute: false,
             allow_revoting: true, // Enable revoting
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4418,6 +4466,7 @@ fn test_update_rationale() {
             only_members_execute: false,
             allow_revoting: true, // Enable revoting
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4548,6 +4597,7 @@ fn test_basic_write_in_vote() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: true,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4624,12 +4674,14 @@ fn test_basic_write_in_vote() {
         .wrap()
         .query_wasm_smart(
             govmod,
-            &QueryMsg::ListProposals { start_after: None, limit: None },
+            &QueryMsg::ListProposals {
+                start_after: None,
+                limit: None,
+            },
         )
         .unwrap();
 
-    let proposal = prop_list.proposals.get(0)
-        .unwrap();
+    let proposal = prop_list.proposals.get(0).unwrap();
 
     let choices = &proposal.proposal.choices;
     assert_eq!(choices.len(), 4);
@@ -4647,6 +4699,7 @@ fn test_instantiate_write_in_vote_with_no_revoting() {
             only_members_execute: false,
             allow_revoting: false,
             allow_write_ins: true,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4666,19 +4719,19 @@ fn test_instantiate_write_in_vote_with_no_revoting() {
     );
 
     let err: ContractError = app
-    .instantiate_contract(
-        core_contract_id,
-        Addr::unchecked(CREATOR_ADDR),
-        &msg,
-        &[],
-        "DAO DAO",
-        None,
-    )
-    .unwrap_err()
-    .downcast()
-    .unwrap();
+        .instantiate_contract(
+            core_contract_id,
+            Addr::unchecked(CREATOR_ADDR),
+            &msg,
+            &[],
+            "DAO DAO",
+            None,
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
 
-    assert!(matches!(err, ContractError::WriteInWithoutRevoting { }))
+    assert!(matches!(err, ContractError::WriteInWithoutRevoting {}))
 }
 
 #[test]
@@ -4692,6 +4745,7 @@ fn test_update_config_write_in_no_revoting() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4718,28 +4772,30 @@ fn test_update_config_write_in_no_revoting() {
     let govmod = governance_modules.into_iter().next().unwrap().address;
 
     // attempt to update config and error
-    let err: ContractError = app.execute_contract(
-        Addr::unchecked(core_addr),
-        govmod.clone(),
-        &ExecuteMsg::UpdateConfig { 
-            voting_strategy: VotingStrategy::SingleChoice {
-                quorum: PercentageThreshold::Majority {},
+    let err: ContractError = app
+        .execute_contract(
+            Addr::unchecked(core_addr),
+            govmod.clone(),
+            &ExecuteMsg::UpdateConfig {
+                voting_strategy: VotingStrategy::SingleChoice {
+                    quorum: PercentageThreshold::Majority {},
+                },
+                min_voting_period: None,
+                close_proposal_on_execution_failure: true,
+                max_voting_period: cw_utils::Duration::Height(20),
+                only_members_execute: false,
+                allow_revoting: false,
+                allow_write_ins: true,
+                write_in_deposit_info: None,
+                dao: "dao".to_string(),
             },
-            min_voting_period: None,
-            close_proposal_on_execution_failure: true,
-            max_voting_period: cw_utils::Duration::Height(20),
-            only_members_execute: false,
-            allow_revoting: false,
-            allow_write_ins: true,
-            dao: "dao".to_string(),
-        },
-        &[],
-    )
-    .unwrap_err()
-    .downcast()
-    .unwrap();
+            &[],
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
 
-    assert!(matches!(err, ContractError::WriteInWithoutRevoting { }))
+    assert!(matches!(err, ContractError::WriteInWithoutRevoting {}))
 }
 
 #[test]
@@ -4753,6 +4809,7 @@ fn test_illegal_write_in_vote() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: false,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4808,24 +4865,25 @@ fn test_illegal_write_in_vote() {
     .unwrap();
 
     // attempt to add one more and error because write ins are not allowed
-    let err: ContractError = app.execute_contract(
-        Addr::unchecked(CREATOR_ADDR),
-        govmod.clone(),
-        &ExecuteMsg::WriteInVote {
-            proposal_id: 1,
-            write_in_vote: MultipleChoiceOption {
-                title: "Write in option".to_string(),
-                description: "do this and that".to_string(),
-                msgs: vec![],
+    let err: ContractError = app
+        .execute_contract(
+            Addr::unchecked(CREATOR_ADDR),
+            govmod.clone(),
+            &ExecuteMsg::WriteInVote {
+                proposal_id: 1,
+                write_in_vote: MultipleChoiceOption {
+                    title: "Write in option".to_string(),
+                    description: "do this and that".to_string(),
+                    msgs: vec![],
+                },
             },
-        },
-        &[],
-    )
-    .unwrap_err()
-    .downcast()
-    .unwrap();
+            &[],
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
 
-    assert!(matches!(err, ContractError::IllegalWriteIn { }))
+    assert!(matches!(err, ContractError::IllegalWriteIn {}))
 }
 
 #[test]
@@ -4839,6 +4897,7 @@ fn test_write_in_expired() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: true,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
@@ -4897,22 +4956,23 @@ fn test_write_in_expired() {
     app.update_block(next_block);
 
     // attempt to add one more and error because prop expired
-    let err: ContractError = app.execute_contract(
-        Addr::unchecked(CREATOR_ADDR),
-        govmod.clone(),
-        &ExecuteMsg::WriteInVote {
-            proposal_id: 1,
-            write_in_vote: MultipleChoiceOption {
-                title: "Write in option".to_string(),
-                description: "do this and that".to_string(),
-                msgs: vec![],
+    let err: ContractError = app
+        .execute_contract(
+            Addr::unchecked(CREATOR_ADDR),
+            govmod.clone(),
+            &ExecuteMsg::WriteInVote {
+                proposal_id: 1,
+                write_in_vote: MultipleChoiceOption {
+                    title: "Write in option".to_string(),
+                    description: "do this and that".to_string(),
+                    msgs: vec![],
+                },
             },
-        },
-        &[],
-    )
-    .unwrap_err()
-    .downcast()
-    .unwrap();
+            &[],
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
 
     assert!(matches!(err, ContractError::Expired { .. }))
 }
@@ -4928,24 +4988,23 @@ fn test_write_in_non_member() {
             only_members_execute: false,
             allow_revoting: true,
             allow_write_ins: true,
+            write_in_deposit_info: None,
             voting_strategy: VotingStrategy::SingleChoice {
                 quorum: PercentageThreshold::Majority {},
             },
             close_proposal_on_execution_failure: false,
             pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
         },
-        Some(vec![
-            Cw20Coin {
-                address: "bekauz".to_string(),
-                amount: Uint128::new(100_000_000),
-            },
-        ]),
+        Some(vec![Cw20Coin {
+            address: "bekauz".to_string(),
+            amount: Uint128::new(100_000_000),
+        }]),
     );
 
     let gov_state: dao_core::query::DumpStateResponse = app
-    .wrap()
-    .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
-    .unwrap();
+        .wrap()
+        .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
+        .unwrap();
     let governance_modules = gov_state.proposal_modules;
     let govmod = governance_modules.into_iter().next().unwrap().address;
 
@@ -4982,8 +5041,206 @@ fn test_write_in_non_member() {
     app.update_block(next_block);
 
     // attempt to add one more and error because prop expired
-    let err: ContractError = app.execute_contract(
-        Addr::unchecked(ALTERNATIVE_ADDR),
+    let err: ContractError = app
+        .execute_contract(
+            Addr::unchecked(ALTERNATIVE_ADDR),
+            govmod.clone(),
+            &ExecuteMsg::WriteInVote {
+                proposal_id: 1,
+                write_in_vote: MultipleChoiceOption {
+                    title: "Write in option".to_string(),
+                    description: "do this and that".to_string(),
+                    msgs: vec![],
+                },
+            },
+            &[],
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
+
+    assert!(matches!(err, ContractError::NotRegistered { .. }))
+}
+
+#[test]
+fn test_write_in_with_fee_no_funds() {
+    let mut app = App::default();
+    let core_addr = instantiate_with_staked_balances_governance(
+        &mut app,
+        InstantiateMsg {
+            min_voting_period: None,
+            max_voting_period: Duration::Height(6),
+            only_members_execute: false,
+            allow_revoting: true,
+            allow_write_ins: true,
+            write_in_deposit_info: Some(UncheckedDepositInfo {
+                denom: DepositToken::Token {
+                    denom: UncheckedDenom::Native("ujuno".to_string()),
+                },
+                amount: Uint128::new(10),
+                refund_policy: DepositRefundPolicy::Always,
+            }),
+            voting_strategy: VotingStrategy::SingleChoice {
+                quorum: PercentageThreshold::Majority {},
+            },
+            close_proposal_on_execution_failure: false,
+            pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
+        },
+        Some(vec![
+            Cw20Coin {
+                address: "bekauz".to_string(),
+                amount: Uint128::new(100_000_000),
+            },
+            Cw20Coin {
+                address: "zuakeb".to_string(),
+                amount: Uint128::new(100_000_000),
+            },
+        ]),
+    );
+
+    let gov_state: dao_core::query::DumpStateResponse = app
+        .wrap()
+        .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
+        .unwrap();
+    let governance_modules = gov_state.proposal_modules;
+
+    assert_eq!(governance_modules.len(), 1);
+    let govmod = governance_modules.into_iter().next().unwrap().address;
+
+    let options = vec![
+        MultipleChoiceOption {
+            description: "multiple choice option 1".to_string(),
+            msgs: vec![],
+            title: "title 1".to_string(),
+        },
+        MultipleChoiceOption {
+            description: "multiple choice option 2".to_string(),
+            msgs: vec![],
+            title: "title 2".to_string(),
+        },
+    ];
+
+    let mc_options = MultipleChoiceOptions { options };
+
+    // create the prop with 2 options
+    app.execute_contract(
+        Addr::unchecked(CREATOR_ADDR),
+        govmod.clone(),
+        &ExecuteMsg::Propose {
+            title: "A proposal".to_string(),
+            description: "A simple proposal".to_string(),
+            choices: mc_options,
+            proposer: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    // try to add one more and fail because of no fee paid
+    let err: ContractError = app
+        .execute_contract(
+            Addr::unchecked("bekauz"),
+            govmod.clone(),
+            &ExecuteMsg::WriteInVote {
+                proposal_id: 1,
+                write_in_vote: MultipleChoiceOption {
+                    title: "Write in option".to_string(),
+                    description: "do this and that".to_string(),
+                    msgs: vec![],
+                },
+            },
+            &[],
+        )
+        .unwrap_err()
+        .downcast()
+        .unwrap();
+
+    assert!(matches!(err, ContractError::DepositError(_)))
+}
+
+#[test]
+fn test_write_in_with_fee() {
+    let mut app = App::default();
+    let core_addr = instantiate_with_staked_balances_governance(
+        &mut app,
+        InstantiateMsg {
+            min_voting_period: None,
+            max_voting_period: Duration::Height(6),
+            only_members_execute: false,
+            allow_revoting: true,
+            allow_write_ins: true,
+            write_in_deposit_info: Some(UncheckedDepositInfo {
+                denom: DepositToken::Token {
+                    denom: UncheckedDenom::Native("ujuno".to_string()),
+                },
+                amount: Uint128::new(10),
+                refund_policy: DepositRefundPolicy::Always,
+            }),
+            voting_strategy: VotingStrategy::SingleChoice {
+                quorum: PercentageThreshold::Majority {},
+            },
+            close_proposal_on_execution_failure: false,
+            pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
+        },
+        Some(vec![
+            Cw20Coin {
+                address: "bekauz".to_string(),
+                amount: Uint128::new(100_000_000),
+            },
+            Cw20Coin {
+                address: "zuakeb".to_string(),
+                amount: Uint128::new(100_000_000),
+            },
+        ]),
+    );
+
+    app.sudo(cw_multi_test::SudoMsg::Bank(BankSudo::Mint {
+        to_address: "bekauz".to_string(),
+        amount: coins(10, "ujuno"),
+    }))
+    .unwrap();
+
+    let gov_state: dao_core::query::DumpStateResponse = app
+        .wrap()
+        .query_wasm_smart(core_addr.clone(), &dao_core::msg::QueryMsg::DumpState {})
+        .unwrap();
+    let governance_modules = gov_state.proposal_modules;
+
+    assert_eq!(governance_modules.len(), 1);
+    let govmod = governance_modules.into_iter().next().unwrap().address;
+
+    let options = vec![
+        MultipleChoiceOption {
+            description: "multiple choice option 1".to_string(),
+            msgs: vec![],
+            title: "title 1".to_string(),
+        },
+        MultipleChoiceOption {
+            description: "multiple choice option 2".to_string(),
+            msgs: vec![],
+            title: "title 2".to_string(),
+        },
+    ];
+
+    let mc_options = MultipleChoiceOptions { options };
+
+    // create the prop with 2 options
+    app.execute_contract(
+        Addr::unchecked(CREATOR_ADDR),
+        govmod.clone(),
+        &ExecuteMsg::Propose {
+            title: "A proposal".to_string(),
+            description: "A simple proposal".to_string(),
+            choices: mc_options,
+            proposer: None,
+        },
+        &[],
+    )
+    .unwrap();
+
+    // add one more
+    app.execute_contract(
+        Addr::unchecked("bekauz"),
         govmod.clone(),
         &ExecuteMsg::WriteInVote {
             proposal_id: 1,
@@ -4993,11 +5250,26 @@ fn test_write_in_non_member() {
                 msgs: vec![],
             },
         },
-        &[],
+        &[Coin {
+            denom: "ujuno".to_string(),
+            amount: Uint128::new(10),
+        }],
     )
-    .unwrap_err()
-    .downcast()
     .unwrap();
 
-    assert!(matches!(err, ContractError::NotRegistered { .. }))
+    let prop_list: ProposalListResponse = app
+        .wrap()
+        .query_wasm_smart(
+            govmod,
+            &QueryMsg::ListProposals {
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
+
+    let proposal = prop_list.proposals.get(0).unwrap();
+
+    let choices = &proposal.proposal.choices;
+    assert_eq!(choices.len(), 4);
 }

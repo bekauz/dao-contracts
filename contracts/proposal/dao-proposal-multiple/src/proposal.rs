@@ -2,8 +2,10 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, StdError, StdResult, Uint128};
 use cw_utils::Expiration;
 use dao_voting::{
+    deposit::CheckedDepositInfo,
     multiple_choice::{
-        CheckedMultipleChoiceOption, MultipleChoiceOptionType, MultipleChoiceVotes, VotingStrategy, MultipleChoiceOption, MAX_NUM_CHOICES,
+        CheckedMultipleChoiceOption, MultipleChoiceOption, MultipleChoiceOptionType,
+        MultipleChoiceVotes, VotingStrategy, MAX_NUM_CHOICES,
     },
     status::Status,
     voting::does_vote_count_pass,
@@ -46,6 +48,7 @@ pub struct MultipleChoiceProposal {
     /// Allows users to submit new voting options.
     /// Requires revoting to be enabled in order to be set to true.
     pub allow_write_ins: bool,
+    pub write_in_deposit_info: Option<CheckedDepositInfo>,
 }
 
 pub enum VoteResult {
@@ -67,8 +70,8 @@ impl MultipleChoiceProposal {
     }
 
     pub fn add_write_in_option(
-        mut self, 
-        write_in_vote: MultipleChoiceOption
+        mut self,
+        write_in_vote: MultipleChoiceOption,
     ) -> StdResult<MultipleChoiceProposal> {
         if self.choices.len() + 1 > MAX_NUM_CHOICES as usize {
             // TODO: un-generify this error
@@ -87,7 +90,7 @@ impl MultipleChoiceProposal {
         };
 
         // votes are tallied by their index (0 to #(number of options))
-        // so it's important to respect the existing order. 
+        // so it's important to respect the existing order.
         // push the new option and a zero vote weight to the
         // end of respective vectors
         self.choices.push(checked_option);
@@ -304,6 +307,7 @@ mod tests {
         is_expired: bool,
         allow_revoting: bool,
         allow_write_ins: bool,
+        write_in_deposit_info: Option<CheckedDepositInfo>,
     ) -> MultipleChoiceProposal {
         // The last option that gets added in into_checked is always the none of the above option
         let options = vec![
@@ -341,6 +345,7 @@ mod tests {
             allow_revoting,
             allow_write_ins,
             min_voting_period: None,
+            write_in_deposit_info,
         }
     }
 
@@ -363,6 +368,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -380,6 +386,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met but none of the above won, should be rejected.
@@ -397,6 +404,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -414,6 +422,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and it is expired, should be rejected.
@@ -431,6 +440,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -448,6 +458,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met but it is a tie but not expired and still voting power remains, should be open.
@@ -476,6 +487,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -493,6 +505,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met but none of the above won, should be rejected.
@@ -510,6 +523,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -527,6 +541,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and it is expired, should be rejected.
@@ -544,6 +559,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -561,6 +577,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met but it is a tie but not expired and still voting power remains, should be open.
@@ -587,6 +604,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Quorum was met but none of the above is winning, but it also can't be beat (only a tie at best), should be rejected
@@ -613,6 +631,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was met and proposal expired, should pass
@@ -637,6 +656,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and expired, should reject
@@ -661,6 +681,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Quorum was not met and expired, should reject
@@ -687,6 +708,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Should pass if expired
@@ -701,6 +723,7 @@ mod tests {
             false,
             false,
             false,
+            None,
         );
 
         // Should pass if not expired
@@ -726,6 +749,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Should pass if majority voted
@@ -740,6 +764,7 @@ mod tests {
             true,
             false,
             false,
+            None,
         );
 
         // Shouldn't pass if only half voted
@@ -767,6 +792,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -779,6 +805,7 @@ mod tests {
             true,
             true,
             false,
+            None,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -804,6 +831,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         );
         // Everyone voted and proposal is in a tie...
         assert_eq!(prop.total_power, prop.votes.total());
@@ -819,6 +847,7 @@ mod tests {
             true,
             true,
             false,
+            None,
         );
         // Proposal has expired and ended in a tie => rejection
         assert_eq!(prop.votes.vote_weights[0], prop.votes.vote_weights[1]);
@@ -848,6 +877,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -860,6 +890,7 @@ mod tests {
             true,
             true,
             false,
+            None,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -888,6 +919,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         );
         // Quorum reached, but proposal is still active => no rejection
         assert!(!prop.is_rejected(&env.block).unwrap());
@@ -904,6 +936,7 @@ mod tests {
             true,
             true,
             false,
+            None,
         );
         // No quorum reached & proposal has expired => rejection
         assert!(prop.is_rejected(&env.block).unwrap());
@@ -928,7 +961,7 @@ mod tests {
     //     let checked_mc_options = mc_options
     //     .into_checked()
     //     .unwrap();
-        
+
     //     assert_eq!(checked_mc_options.options.get(0).unwrap().index, 0);
     //     assert_eq!(checked_mc_options.options.get(0).unwrap().title, "option1".to_string());
     //     assert_eq!(checked_mc_options.options.get(1).unwrap().index, 1);
@@ -952,6 +985,5 @@ mod tests {
     //     assert_eq!(checked_mc_options.options.get(2).unwrap().title, "None of the above".to_string());
     //     assert_eq!(checked_mc_options.options.get(3).unwrap().index, 3);
     //     assert_eq!(checked_mc_options.options.get(3).unwrap().title, "option3".to_string());
-    // }   
-
+    // }
 }

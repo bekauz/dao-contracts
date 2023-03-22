@@ -263,5 +263,4 @@ mod test {
         let mc_options = super::MultipleChoiceOptions { options };
         mc_options.into_checked().unwrap();
     }
-
 }

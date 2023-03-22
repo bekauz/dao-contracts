@@ -3,7 +3,7 @@ use std::u64;
 use cosmwasm_std::StdError;
 use cw_hooks::HookError;
 use cw_utils::ParseReplyError;
-use dao_voting::{reply::error::TagError, threshold::ThresholdError};
+use dao_voting::{deposit::DepositError, reply::error::TagError, threshold::ThresholdError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -93,6 +93,9 @@ pub enum ContractError {
 
     #[error("{0}")]
     Tag(#[from] TagError),
+
+    #[error("{0}")]
+    DepositError(#[from] DepositError),
 
     #[error(
         "all proposals with deposits must be completed out (closed or executed) before migration"

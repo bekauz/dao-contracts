@@ -1,11 +1,12 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cw_utils::Duration;
 use dao_macros::proposal_module_query;
+use dao_voting::multiple_choice::MultipleChoiceOption;
 use dao_voting::{
+    deposit::UncheckedDepositInfo,
     multiple_choice::{MultipleChoiceOptions, MultipleChoiceVote, VotingStrategy},
     pre_propose::PreProposeInfo,
 };
-use dao_voting::multiple_choice::MultipleChoiceOption;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -29,6 +30,7 @@ pub struct InstantiateMsg {
     /// expiration.
     pub allow_revoting: bool,
     pub allow_write_ins: bool,
+    pub write_in_deposit_info: Option<UncheckedDepositInfo>,
     /// Information about what addresses may create proposals.
     pub pre_propose_info: PreProposeInfo,
     /// If set to true proposals will be closed if their execution
@@ -115,6 +117,7 @@ pub enum ExecuteMsg {
         /// expiration.
         allow_revoting: bool,
         allow_write_ins: bool,
+        write_in_deposit_info: Option<UncheckedDepositInfo>,
         /// The address if tge DAO that this governance module is
         /// associated with.
         dao: String,
