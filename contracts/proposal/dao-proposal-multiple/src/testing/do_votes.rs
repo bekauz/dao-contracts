@@ -26,7 +26,6 @@ use crate::{
         tests::{get_pre_propose_info, proposal_multiple_contract, TestMultipleChoiceVote},
     },
 };
-use dao_pre_propose_multiple as cppm;
 
 fn do_votes_cw20_balances(
     votes: Vec<TestMultipleChoiceVote>,
@@ -128,7 +127,6 @@ where
         only_members_execute: false,
         allow_revoting: false,
         allow_write_ins: false,
-        write_in_deposit_info: None,
         voting_strategy,
         close_proposal_on_execution_failure: true,
         pre_propose_info,
@@ -209,8 +207,8 @@ where
     app.execute_contract(
         Addr::unchecked(&proposer),
         pre_propose_module,
-        &cppm::ExecuteMsg::Propose {
-            msg: cppm::ProposeMessage::Propose {
+        &dao_pre_propose_multiple::ExecuteMsg::Propose {
+            msg: dao_pre_propose_multiple::msg::ProposeMessage::Propose {
                 title: "A simple text proposal".to_string(),
                 description: "This is a simple text proposal".to_string(),
                 choices: mc_options,

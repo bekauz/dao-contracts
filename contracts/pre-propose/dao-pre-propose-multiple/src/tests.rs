@@ -21,7 +21,7 @@ use dao_voting::{
     threshold::PercentageThreshold,
 };
 
-use crate::contract::*;
+use crate::{contract::*, msg::{ProposeMessage, InstantiateExt}};
 
 fn cw_dao_proposal_multiple_contract() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
@@ -68,7 +68,9 @@ fn get_default_proposal_module_instantiate(
                 msg: to_binary(&InstantiateMsg {
                     deposit_info,
                     open_proposal_submission,
-                    extension: Empty::default(),
+                    extension: crate::msg::InstantiateExt { 
+                        write_in_deposit_info: None
+                    },
                 })
                 .unwrap(),
                 admin: Some(Admin::CoreModule {}),
@@ -76,6 +78,7 @@ fn get_default_proposal_module_instantiate(
             },
         },
         close_proposal_on_execution_failure: false,
+        allow_write_ins: false,
     }
 }
 
@@ -1055,7 +1058,9 @@ fn test_instantiate_with_zero_native_deposit() {
                             refund_policy: DepositRefundPolicy::OnlyPassed,
                         }),
                         open_proposal_submission: false,
-                        extension: Empty::default(),
+                        extension: InstantiateExt {
+                            write_in_deposit_info: None,
+                        },
                     })
                     .unwrap(),
                     admin: Some(Admin::CoreModule {}),
@@ -1063,6 +1068,7 @@ fn test_instantiate_with_zero_native_deposit() {
                 },
             },
             close_proposal_on_execution_failure: false,
+            allow_write_ins: false,
         }
     };
 
@@ -1116,7 +1122,9 @@ fn test_instantiate_with_zero_cw20_deposit() {
                             refund_policy: DepositRefundPolicy::OnlyPassed,
                         }),
                         open_proposal_submission: false,
-                        extension: Empty::default(),
+                        extension: InstantiateExt {
+                            write_in_deposit_info: None,
+                        },
                     })
                     .unwrap(),
                     admin: Some(Admin::CoreModule {}),
@@ -1124,6 +1132,7 @@ fn test_instantiate_with_zero_cw20_deposit() {
                 },
             },
             close_proposal_on_execution_failure: false,
+            allow_write_ins: false,
         }
     };
 

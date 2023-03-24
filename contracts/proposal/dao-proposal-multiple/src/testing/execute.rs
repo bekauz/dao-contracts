@@ -2,7 +2,6 @@ use cosmwasm_std::{coins, Addr, Uint128};
 use cw_multi_test::{App, Executor};
 
 use cw_denom::CheckedDenom;
-use dao_pre_propose_multiple as cppm;
 use dao_voting::{
     deposit::CheckedDepositInfo, multiple_choice::MultipleChoiceOptions,
     pre_propose::ProposalCreationPolicy,
@@ -81,8 +80,8 @@ pub fn make_proposal(
             .execute_contract(
                 Addr::unchecked(proposer),
                 addr,
-                &cppm::ExecuteMsg::Propose {
-                    msg: cppm::ProposeMessage::Propose {
+                &dao_pre_propose_multiple::ExecuteMsg::Propose {
+                    msg: dao_pre_propose_multiple::msg::ProposeMessage::Propose {
                         title: "title".to_string(),
                         description: "description".to_string(),
                         choices,

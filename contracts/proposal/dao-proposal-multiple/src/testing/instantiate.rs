@@ -4,7 +4,6 @@ use cw20::Cw20Coin;
 use cw_multi_test::{next_block, App, BankSudo, ContractWrapper, Executor, SudoMsg};
 use cw_utils::Duration;
 use dao_interface::{Admin, ModuleInstantiateInfo};
-use dao_pre_propose_multiple as cppm;
 
 use dao_testing::contracts::{
     cw20_balances_voting_contract, cw20_base_contract, cw20_stake_contract,
@@ -24,6 +23,7 @@ use crate::testing::tests::ALTERNATIVE_ADDR;
 use crate::{
     msg::InstantiateMsg, testing::tests::proposal_multiple_contract, testing::tests::CREATOR_ADDR,
 };
+use dao_pre_propose_multiple::msg::InstantiateExt;
 
 #[allow(dead_code)]
 fn get_pre_propose_info(
@@ -32,15 +32,17 @@ fn get_pre_propose_info(
     open_proposal_submission: bool,
 ) -> PreProposeInfo {
     let pre_propose_contract = app.store_code(pre_propose_multiple_contract());
+    let pre_propose_multiple_instantiate = dao_pre_propose_multiple::InstantiateMsg {
+        deposit_info,
+        open_proposal_submission,   
+        extension: InstantiateExt {
+            write_in_deposit_info: None,
+        },
+    };
     PreProposeInfo::ModuleMayPropose {
         info: ModuleInstantiateInfo {
             code_id: pre_propose_contract,
-            msg: to_binary(&cppm::InstantiateMsg {
-                deposit_info,
-                open_proposal_submission,
-                extension: Empty::default(),
-            })
-            .unwrap(),
+            msg: to_binary(&pre_propose_multiple_instantiate).unwrap(),
             admin: Some(Admin::CoreModule {}),
             label: "pre_propose_contract".to_string(),
         },
@@ -58,7 +60,6 @@ pub fn _get_default_token_dao_proposal_module_instantiate(app: &mut App) -> Inst
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
-        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             app,
             Some(UncheckedDepositInfo {
@@ -84,7 +85,6 @@ fn _get_default_non_token_dao_proposal_module_instantiate(app: &mut App) -> Inst
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
-        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(app, None, false),
         close_proposal_on_execution_failure: true,
     }

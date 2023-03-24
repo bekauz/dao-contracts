@@ -278,7 +278,6 @@ pub fn test_allow_voting_after_proposal_execution_pre_expiration_cw20() {
         only_members_execute: true,
         allow_revoting: false,
         allow_write_ins: false,
-        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             &mut app,
             Some(UncheckedDepositInfo {
@@ -419,7 +418,6 @@ fn test_write_in_impact_on_existing_votes() {
         only_members_execute: true,
         allow_revoting: true,
         allow_write_ins: true,
-        write_in_deposit_info: None,
         pre_propose_info: get_pre_propose_info(
             &mut app,
             Some(UncheckedDepositInfo {

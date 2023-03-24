@@ -5,7 +5,6 @@ use cw_hooks::Hooks;
 use cw_storage_plus::{Item, Map};
 use cw_utils::Duration;
 use dao_voting::{
-    deposit::CheckedDepositInfo,
     multiple_choice::{MultipleChoiceVote, VotingStrategy},
     pre_propose::ProposalCreationPolicy,
 };
@@ -34,7 +33,6 @@ pub struct Config {
     /// expiration.
     pub allow_revoting: bool,
     pub allow_write_ins: bool,
-    pub write_in_deposit_info: Option<CheckedDepositInfo>,
     /// The address of the DAO that this governance module is
     /// associated with.
     pub dao: Addr,

@@ -1,29 +1,24 @@
 use cosmwasm_schema::cw_serde;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Addr};
 use cw2::set_contract_version;
+use dao_interface::voting::{Query as CwCoreQuery};
 
 use dao_pre_propose_base::{
     error::PreProposeError,
     msg::{ExecuteMsg as ExecuteBase, InstantiateMsg as InstantiateBase, QueryMsg as QueryBase},
     state::PreProposeContract,
 };
-use dao_voting::multiple_choice::MultipleChoiceOptions;
+use dao_voting::{multiple_choice::MultipleChoiceOptions, deposit::UncheckedDepositInfo};
+
+use crate::{state::WRITE_IN_DEPOSIT_INFO, msg::{InstantiateExt, ProposeMessage}};
 
 pub(crate) const CONTRACT_NAME: &str = "crates.io:dao-pre-propose-multiple";
 pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[cw_serde]
-pub enum ProposeMessage {
-    Propose {
-        title: String,
-        description: String,
-        choices: MultipleChoiceOptions,
-    },
-}
 
-pub type InstantiateMsg = InstantiateBase<Empty>;
+pub type InstantiateMsg = InstantiateBase<InstantiateExt>;
 pub type ExecuteMsg = ExecuteBase<ProposeMessage, Empty>;
 pub type QueryMsg = QueryBase<Empty>;
 
@@ -40,7 +35,7 @@ enum ProposeMessageInternal {
     },
 }
 
-type PrePropose = PreProposeContract<Empty, Empty, Empty, ProposeMessageInternal>;
+type PrePropose = PreProposeContract<InstantiateExt, Empty, Empty, ProposeMessageInternal>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -49,6 +44,19 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, PreProposeError> {
+    let dao: Addr = deps
+        .querier
+        .query_wasm_smart(info.sender.clone(), &CwCoreQuery::Dao {})?;
+
+    let deposit_info = msg.clone()
+        .extension
+        .write_in_deposit_info
+        .map(|info| info.into_checked(deps.as_ref(), dao))
+        .transpose()?;
+
+    // store the optional write_in fee
+    WRITE_IN_DEPOSIT_INFO.save(deps.storage, &deposit_info)?;
+
     let resp = PrePropose::default().instantiate(deps.branch(), env, info, msg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(resp)

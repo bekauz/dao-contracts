@@ -30,7 +30,6 @@ pub struct InstantiateMsg {
     /// expiration.
     pub allow_revoting: bool,
     pub allow_write_ins: bool,
-    pub write_in_deposit_info: Option<UncheckedDepositInfo>,
     /// Information about what addresses may create proposals.
     pub pre_propose_info: PreProposeInfo,
     /// If set to true proposals will be closed if their execution
@@ -117,7 +116,6 @@ pub enum ExecuteMsg {
         /// expiration.
         allow_revoting: bool,
         allow_write_ins: bool,
-        write_in_deposit_info: Option<UncheckedDepositInfo>,
         /// The address if tge DAO that this governance module is
         /// associated with.
         dao: String,

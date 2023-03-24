@@ -136,7 +136,7 @@ where
             &(config.deposit_info, info.sender.clone()),
         )?;
 
-        let propose_messsage = WasmMsg::Execute {
+        let propose_message = WasmMsg::Execute {
             contract_addr: proposal_module.into_string(),
             msg: to_binary(&msg)?,
             funds: vec![],
@@ -160,7 +160,7 @@ where
             // first. Otherwise, a hook receiver could create a
             // proposal before us and invalidate our `NextProposalId
             // {}` query.
-            .add_message(propose_messsage)
+            .add_message(propose_message)
             .add_submessages(hooks_msgs)
             .add_messages(deposit_messages))
     }

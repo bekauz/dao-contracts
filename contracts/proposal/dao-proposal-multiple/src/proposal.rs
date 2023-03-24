@@ -2,7 +2,6 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, StdError, StdResult, Uint128};
 use cw_utils::Expiration;
 use dao_voting::{
-    deposit::CheckedDepositInfo,
     multiple_choice::{
         CheckedMultipleChoiceOption, MultipleChoiceOption, MultipleChoiceOptionType,
         MultipleChoiceVotes, VotingStrategy, MAX_NUM_CHOICES,
@@ -48,7 +47,6 @@ pub struct MultipleChoiceProposal {
     /// Allows users to submit new voting options.
     /// Requires revoting to be enabled in order to be set to true.
     pub allow_write_ins: bool,
-    pub write_in_deposit_info: Option<CheckedDepositInfo>,
 }
 
 pub enum VoteResult {
@@ -307,7 +305,6 @@ mod tests {
         is_expired: bool,
         allow_revoting: bool,
         allow_write_ins: bool,
-        write_in_deposit_info: Option<CheckedDepositInfo>,
     ) -> MultipleChoiceProposal {
         // The last option that gets added in into_checked is always the none of the above option
         let options = vec![
@@ -345,7 +342,6 @@ mod tests {
             allow_revoting,
             allow_write_ins,
             min_voting_period: None,
-            write_in_deposit_info,
         }
     }
 
@@ -368,7 +364,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -386,7 +381,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met but none of the above won, should be rejected.
@@ -404,7 +398,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -422,7 +415,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and it is expired, should be rejected.
@@ -440,7 +432,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -458,7 +449,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met but it is a tie but not expired and still voting power remains, should be open.
@@ -487,7 +477,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met and all votes were cast, should be passed.
@@ -505,7 +494,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met but none of the above won, should be rejected.
@@ -523,7 +511,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and is not expired, should be open.
@@ -541,7 +528,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and it is expired, should be rejected.
@@ -559,7 +545,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was met but it is a tie and expired, should be rejected.
@@ -577,7 +562,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met but it is a tie but not expired and still voting power remains, should be open.
@@ -604,7 +588,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Quorum was met but none of the above is winning, but it also can't be beat (only a tie at best), should be rejected
@@ -631,7 +614,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was met and proposal expired, should pass
@@ -656,7 +638,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and expired, should reject
@@ -681,7 +662,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Quorum was not met and expired, should reject
@@ -708,7 +688,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Should pass if expired
@@ -723,7 +702,6 @@ mod tests {
             false,
             false,
             false,
-            None,
         );
 
         // Should pass if not expired
@@ -749,7 +727,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Should pass if majority voted
@@ -764,7 +741,6 @@ mod tests {
             true,
             false,
             false,
-            None,
         );
 
         // Shouldn't pass if only half voted
@@ -792,7 +768,6 @@ mod tests {
             false,
             true,
             false,
-            None,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -805,7 +780,6 @@ mod tests {
             true,
             true,
             false,
-            None,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -831,7 +805,6 @@ mod tests {
             false,
             true,
             false,
-            None,
         );
         // Everyone voted and proposal is in a tie...
         assert_eq!(prop.total_power, prop.votes.total());
@@ -847,7 +820,6 @@ mod tests {
             true,
             true,
             false,
-            None,
         );
         // Proposal has expired and ended in a tie => rejection
         assert_eq!(prop.votes.vote_weights[0], prop.votes.vote_weights[1]);
@@ -877,7 +849,6 @@ mod tests {
             false,
             true,
             false,
-            None,
         );
         // Quorum reached, but proposal is still active => no pass
         assert!(!prop.is_passed(&env.block).unwrap());
@@ -890,7 +861,6 @@ mod tests {
             true,
             true,
             false,
-            None,
         );
         // Quorum reached & proposal has expired => pass
         assert!(prop.is_passed(&env.block).unwrap());
@@ -919,7 +889,6 @@ mod tests {
             false,
             true,
             false,
-            None,
         );
         // Quorum reached, but proposal is still active => no rejection
         assert!(!prop.is_rejected(&env.block).unwrap());
@@ -936,7 +905,6 @@ mod tests {
             true,
             true,
             false,
-            None,
         );
         // No quorum reached & proposal has expired => rejection
         assert!(prop.is_rejected(&env.block).unwrap());
