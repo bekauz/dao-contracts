@@ -12,15 +12,15 @@ use dao_pre_propose_base::{
 };
 use dao_voting::{multiple_choice::MultipleChoiceOptions, deposit::UncheckedDepositInfo};
 
-use crate::{state::WRITE_IN_DEPOSIT_INFO, msg::{InstantiateExt, ProposeMessage}};
+use crate::{state::WRITE_IN_DEPOSIT_INFO, msg::{InstantiateExt, ProposeMessage, ExecuteExt, QueryExt}};
 
 pub(crate) const CONTRACT_NAME: &str = "crates.io:dao-pre-propose-multiple";
 pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
 pub type InstantiateMsg = InstantiateBase<InstantiateExt>;
-pub type ExecuteMsg = ExecuteBase<ProposeMessage, Empty>;
-pub type QueryMsg = QueryBase<Empty>;
+pub type ExecuteMsg = ExecuteBase<ProposeMessage, ExecuteExt>;
+pub type QueryMsg = QueryBase<QueryExt>;
 
 /// Internal version of the propose message that includes the
 /// `proposer` field. The module will fill this in based on the sender
@@ -35,7 +35,7 @@ enum ProposeMessageInternal {
     },
 }
 
-type PrePropose = PreProposeContract<InstantiateExt, Empty, Empty, ProposeMessageInternal>;
+type PrePropose = PreProposeContract<InstantiateExt, ExecuteExt, QueryExt, ProposeMessageInternal>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -90,7 +90,9 @@ pub fn execute(
                 choices,
             },
         },
-        ExecuteMsg::Extension { msg } => ExecuteInternal::Extension { msg },
+        ExecuteMsg::Extension { msg } => match msg {
+            ExecuteExt::WriteInVote { proposal_id, write_in_vote } => todo!(),
+        },
         ExecuteMsg::Withdraw { denom } => ExecuteInternal::Withdraw { denom },
         ExecuteMsg::UpdateConfig {
             deposit_info,
@@ -115,6 +117,15 @@ pub fn execute(
     };
 
     PrePropose::default().execute(deps, env, info, internalized)
+}
+
+pub fn execute_write_in_vote(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ProposeMessage,
+) -> Result<Response, PreProposeError> {
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

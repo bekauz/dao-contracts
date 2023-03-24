@@ -113,7 +113,7 @@ where
         })
     }
 
-    let pre_propose_info = get_pre_propose_info(&mut app, deposit_info, false);
+    let pre_propose_info = get_pre_propose_info(&mut app, deposit_info, None, false);
 
     let proposer = match votes.first() {
         Some(vote) => vote.voter.clone(),

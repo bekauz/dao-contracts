@@ -85,6 +85,7 @@ pub fn pre_propose_multiple_contract() -> Box<dyn Contract<Empty>> {
 pub fn get_pre_propose_info(
     app: &mut App,
     deposit_info: Option<UncheckedDepositInfo>,
+    write_in_deposit_info: Option<UncheckedDepositInfo>,
     open_proposal_submission: bool,
 ) -> PreProposeInfo {
     let pre_propose_contract = app.store_code(pre_propose_multiple_contract());
@@ -95,7 +96,7 @@ pub fn get_pre_propose_info(
                 deposit_info,
                 open_proposal_submission,
                 extension: InstantiateExt {
-                    write_in_deposit_info: None,
+                    write_in_deposit_info,
                 },
             })
             .unwrap(),
@@ -719,6 +720,7 @@ fn test_voting_module_token_proposal_deposit_instantiate() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::OnlyPassed,
             }),
+            None,
             false,
         ),
     };
@@ -792,6 +794,7 @@ fn test_different_token_proposal_deposit() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::OnlyPassed,
             }),
+            None,
             false,
         ),
     };
@@ -854,6 +857,7 @@ fn test_bad_token_proposal_deposit() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::OnlyPassed,
             }),
+            None,
             false,
         ),
     };
@@ -885,6 +889,7 @@ fn test_take_proposal_deposit() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::OnlyPassed,
             }),
+            None,
             false,
         ),
     };
@@ -991,6 +996,7 @@ fn test_native_proposal_deposit() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::Always,
             }),
+            None,
             false,
         ),
     };
@@ -1414,6 +1420,7 @@ fn test_cant_propose_zero_power() {
                 amount: Uint128::new(1),
                 refund_policy: DepositRefundPolicy::Always,
             }),
+            None,
             false,
         ),
     };
@@ -1789,7 +1796,7 @@ fn test_open_proposal_submission() {
         allow_revoting: false,
         allow_write_ins: false,
         close_proposal_on_execution_failure: true,
-        pre_propose_info: get_pre_propose_info(&mut app, None, true),
+        pre_propose_info: get_pre_propose_info(&mut app, None, None, true),
     };
     let core_addr = instantiate_with_staked_balances_governance(&mut app, instantiate, None);
     let govmod = query_multiple_proposal_module(&app, &core_addr);
@@ -3830,6 +3837,7 @@ fn test_no_double_refund_on_execute_fail_and_close() {
                 // close only happen if this is true.
                 refund_policy: DepositRefundPolicy::Always,
             }),
+            None,
             false,
         ),
     };
@@ -5012,13 +5020,6 @@ fn test_write_in_non_member() {
 
 #[test]
 fn test_write_in_with_fee_no_funds() {
-    let write_in_deposit_info = Some(UncheckedDepositInfo {
-        denom: DepositToken::Token {
-            denom: UncheckedDenom::Native("ujuno".to_string()),
-        },
-        amount: Uint128::new(10),
-        refund_policy: DepositRefundPolicy::Always,
-    });
 
     let mut app = App::default();
     let core_addr = instantiate_with_staked_balances_governance(
@@ -5109,28 +5110,22 @@ fn test_write_in_with_fee_no_funds() {
 
 #[test]
 fn test_write_in_with_fee() {
-    let write_in_deposit_info = Some(UncheckedDepositInfo {
-        denom: DepositToken::Token {
-            denom: UncheckedDenom::Native("ujuno".to_string()),
-        },
-        amount: Uint128::new(10),
-        refund_policy: DepositRefundPolicy::Always,
-    });
     let mut app = App::default();
+    let proposal_module_instantiate = InstantiateMsg {
+        min_voting_period: None,
+        max_voting_period: Duration::Height(6),
+        only_members_execute: false,
+        allow_revoting: true,
+        allow_write_ins: true,
+        voting_strategy: VotingStrategy::SingleChoice {
+            quorum: PercentageThreshold::Majority {},
+        },
+        close_proposal_on_execution_failure: false,
+        pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
+    };
     let core_addr = instantiate_with_staked_balances_governance(
         &mut app,
-        InstantiateMsg {
-            min_voting_period: None,
-            max_voting_period: Duration::Height(6),
-            only_members_execute: false,
-            allow_revoting: true,
-            allow_write_ins: true,
-            voting_strategy: VotingStrategy::SingleChoice {
-                quorum: PercentageThreshold::Majority {},
-            },
-            close_proposal_on_execution_failure: false,
-            pre_propose_info: PreProposeInfo::AnyoneMayPropose {},
-        },
+        proposal_module_instantiate,
         Some(vec![
             Cw20Coin {
                 address: "bekauz".to_string(),
@@ -5187,6 +5182,9 @@ fn test_write_in_with_fee() {
     )
     .unwrap();
 
+    let balance = query_balance_native(&app, "bekauz", "ujuno");
+    assert_eq!(balance, Uint128::new(10));
+
     // add one more
     app.execute_contract(
         Addr::unchecked("bekauz"),
@@ -5206,6 +5204,10 @@ fn test_write_in_with_fee() {
     )
     .unwrap();
 
+    // assert write-in fee has been taken
+    let balance = query_balance_native(&app, "bekauz", "ujuno");
+    assert_eq!(balance, Uint128::new(0));
+    
     let prop_list: ProposalListResponse = app
         .wrap()
         .query_wasm_smart(
@@ -5221,4 +5223,5 @@ fn test_write_in_with_fee() {
 
     let choices = &proposal.proposal.choices;
     assert_eq!(choices.len(), 4);
+
 }

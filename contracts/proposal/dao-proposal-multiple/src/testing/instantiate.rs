@@ -1,6 +1,7 @@
 use cosmwasm_std::{to_binary, Addr, Coin, Empty, Uint128};
 use cw20::Cw20Coin;
 
+use cw_denom::UncheckedDenom;
 use cw_multi_test::{next_block, App, BankSudo, ContractWrapper, Executor, SudoMsg};
 use cw_utils::Duration;
 use dao_interface::{Admin, ModuleInstantiateInfo};
@@ -11,7 +12,7 @@ use dao_testing::contracts::{
     dao_core_contract, native_staked_balances_voting_contract, pre_propose_multiple_contract,
 };
 use dao_voting::{
-    deposit::{DepositRefundPolicy, UncheckedDepositInfo},
+    deposit::{DepositRefundPolicy, UncheckedDepositInfo, DepositToken},
     multiple_choice::VotingStrategy,
     pre_propose::PreProposeInfo,
     threshold::PercentageThreshold,
