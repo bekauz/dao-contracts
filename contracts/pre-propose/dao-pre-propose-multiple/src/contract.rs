@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Addr};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Addr, WasmMsg, to_binary};
 use cw2::set_contract_version;
 use dao_interface::voting::{Query as CwCoreQuery};
 
@@ -10,13 +10,12 @@ use dao_pre_propose_base::{
     msg::{ExecuteMsg as ExecuteBase, InstantiateMsg as InstantiateBase, QueryMsg as QueryBase},
     state::PreProposeContract,
 };
-use dao_voting::{multiple_choice::MultipleChoiceOptions, deposit::UncheckedDepositInfo};
+use dao_voting::{multiple_choice::{MultipleChoiceOptions}};
 
 use crate::{state::WRITE_IN_DEPOSIT_INFO, msg::{InstantiateExt, ProposeMessage, ExecuteExt, QueryExt}};
 
 pub(crate) const CONTRACT_NAME: &str = "crates.io:dao-pre-propose-multiple";
 pub(crate) const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 
 pub type InstantiateMsg = InstantiateBase<InstantiateExt>;
 pub type ExecuteMsg = ExecuteBase<ProposeMessage, ExecuteExt>;
@@ -36,6 +35,7 @@ enum ProposeMessageInternal {
 }
 
 type PrePropose = PreProposeContract<InstantiateExt, ExecuteExt, QueryExt, ProposeMessageInternal>;
+// type PrePropose = PreProposeContract<InstantiateExt, ExecuteExt, QueryExt, ProposeMessage>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -73,8 +73,8 @@ pub fn execute(
     // message externally as that is to be set by this module. Here,
     // we transform an external message which omits that field into an
     // internal message which sets it.
-    type ExecuteInternal = ExecuteBase<ProposeMessageInternal, Empty>;
-    let internalized = match msg {
+    type ExecuteInternal = ExecuteBase<ProposeMessageInternal, ExecuteExt>;
+    match msg {
         ExecuteMsg::Propose {
             msg:
                 ProposeMessage::Propose {
@@ -82,51 +82,65 @@ pub fn execute(
                     description,
                     choices,
                 },
-        } => ExecuteInternal::Propose {
+        } => PrePropose::default().execute(deps, env, info.clone(), ExecuteInternal::Propose {
             msg: ProposeMessageInternal::Propose {
                 proposer: Some(info.sender.to_string()),
                 title,
                 description,
                 choices,
-            },
-        },
-        ExecuteMsg::Extension { msg } => match msg {
-            ExecuteExt::WriteInVote { proposal_id, write_in_vote } => todo!(),
-        },
-        ExecuteMsg::Withdraw { denom } => ExecuteInternal::Withdraw { denom },
+            }}
+        ),
+        ExecuteMsg::Extension { msg } => execute_write_in_vote(deps, env, info, msg),
+        ExecuteMsg::Withdraw { denom } => PrePropose::default().execute(deps, env, info, ExecuteInternal::Withdraw { denom }),
         ExecuteMsg::UpdateConfig {
             deposit_info,
             open_proposal_submission,
-        } => ExecuteInternal::UpdateConfig {
+        } => PrePropose::default().execute(deps, env, info, ExecuteInternal::UpdateConfig {
             deposit_info,
             open_proposal_submission,
-        },
-        ExecuteMsg::AddProposalSubmittedHook { address } => {
-            ExecuteInternal::AddProposalSubmittedHook { address }
-        }
-        ExecuteMsg::RemoveProposalSubmittedHook { address } => {
-            ExecuteInternal::RemoveProposalSubmittedHook { address }
-        }
+        }),
+        ExecuteMsg::AddProposalSubmittedHook { address } => PrePropose::default().execute(deps, env, info,
+            ExecuteInternal::AddProposalSubmittedHook { address }),
+        ExecuteMsg::RemoveProposalSubmittedHook { address } => PrePropose::default().execute(deps, env, info, ExecuteInternal::RemoveProposalSubmittedHook { address }),
         ExecuteBase::ProposalCompletedHook {
             proposal_id,
             new_status,
-        } => ExecuteInternal::ProposalCompletedHook {
+        } => PrePropose::default().execute(deps, env, info, ExecuteInternal::ProposalCompletedHook {
             proposal_id,
             new_status,
-        },
-    };
-
-    PrePropose::default().execute(deps, env, info, internalized)
+        }),
+    }
 }
 
 pub fn execute_write_in_vote(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: ProposeMessage,
+    msg: ExecuteExt,
 ) -> Result<Response, PreProposeError> {
-    Ok(Response::default())
+    let proposal_module = PrePropose::default().proposal_module.load(deps.storage)?;
+
+    // let internal_message = match msg {
+    //     ExecuteExt::WriteInVote { 
+    //         proposal_id, 
+    //         write_in_vote 
+    //     } => dao_proposal_multiple::ExecuteMsg::WriteInVote { 
+    //         proposal_id, 
+    //         write_in_vote, 
+    //     }
+    // };
+
+    let write_in_message = WasmMsg::Execute {
+        contract_addr: proposal_module.into_string(),
+        msg: to_binary(&"todo")?,
+        funds: info.funds,  // write in deposit
+    };
+    Ok(Response::default()
+        .add_message(write_in_message)
+        .add_attribute("method", "proposal_approved")
+    )
 }
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {

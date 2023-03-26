@@ -7,6 +7,7 @@ pub mod proposal;
 pub mod query;
 pub mod state;
 pub use crate::error::ContractError;
+pub use crate::msg::ExecuteMsg;
 
 #[cfg(test)]
 pub mod testing;

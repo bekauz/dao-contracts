@@ -998,34 +998,35 @@ fn test_no_deposit_required_members_submission() {
 
 #[test]
 fn test_execute_extension_does_nothing() {
-    let mut app = App::default();
-    let DefaultTestSetup {
-        core_addr: _,
-        proposal_single: _,
-        pre_propose,
-    } = setup_default_test(
-        &mut app, None, false, // no open proposal submission.
-    );
+    unimplemented!()
+    // let mut app = App::default();
+    // let DefaultTestSetup {
+    //     core_addr: _,
+    //     proposal_single: _,
+    //     pre_propose,
+    // } = setup_default_test(
+    //     &mut app, None, false, // no open proposal submission.
+    // );
 
-    let res = app
-        .execute_contract(
-            Addr::unchecked("ekez"),
-            pre_propose,
-            &ExecuteMsg::Extension {
-                msg: Empty::default(),
-            },
-            &[],
-        )
-        .unwrap();
+    // let res = app
+    //     .execute_contract(
+    //         Addr::unchecked("ekez"),
+    //         pre_propose,
+    //         &ExecuteMsg::Extension {
+    //             msg: Empty::default(),
+    //         },
+    //         &[],
+    //     )
+    //     .unwrap();
 
-    // There should be one event which is the invocation of the contract.
-    assert_eq!(res.events.len(), 1);
-    assert_eq!(res.events[0].ty, "execute".to_string());
-    assert_eq!(res.events[0].attributes.len(), 1);
-    assert_eq!(
-        res.events[0].attributes[0].key,
-        "_contract_addr".to_string()
-    )
+    // // There should be one event which is the invocation of the contract.
+    // assert_eq!(res.events.len(), 1);
+    // assert_eq!(res.events[0].ty, "execute".to_string());
+    // assert_eq!(res.events[0].attributes.len(), 1);
+    // assert_eq!(
+    //     res.events[0].attributes[0].key,
+    //     "_contract_addr".to_string()
+    // )
 }
 
 #[test]
