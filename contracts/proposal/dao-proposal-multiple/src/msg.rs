@@ -2,6 +2,7 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cw_utils::Duration;
 use dao_macros::proposal_module_query;
 use dao_voting::multiple_choice::MultipleChoiceOption;
+use dao_voting::write_in::WriteInMsg;
 use dao_voting::{
     deposit::UncheckedDepositInfo,
     multiple_choice::{MultipleChoiceOptions, MultipleChoiceVote, VotingStrategy},
@@ -72,12 +73,7 @@ pub enum ExecuteMsg {
         rationale: Option<String>,
     },
     /// Proposes a new voting option and casts the vote towards it.
-    WriteInVote {
-        /// The ID of the proposal to vote on.
-        proposal_id: u64,
-        /// The senders proposed voting option.
-        write_in_vote: MultipleChoiceOption,
-    },
+    WriteInVote(WriteInMsg),
     /// Causes the messages associated with a passed proposal to be
     /// executed by the DAO.
     Execute {

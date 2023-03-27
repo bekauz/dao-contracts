@@ -17,7 +17,7 @@ use dao_voting::{
     },
     pre_propose::PreProposeInfo,
     status::Status,
-    threshold::{PercentageThreshold, Threshold},
+    threshold::{PercentageThreshold, Threshold}, write_in::WriteInMsg,
 };
 use dao_voting_cw20_staked::msg::ActiveThreshold;
 
@@ -4620,14 +4620,14 @@ fn test_basic_write_in_vote() {
     app.execute_contract(
         Addr::unchecked("bekauz"),
         govmod.clone(),
-        &ExecuteMsg::WriteInVote {
+        &ExecuteMsg::WriteInVote(WriteInMsg {
             proposal_id: 1,
             write_in_vote: MultipleChoiceOption {
                 title: "Write in option".to_string(),
                 description: "do this and that".to_string(),
                 msgs: vec![],
             },
-        },
+        }),
         &[],
     )
     .unwrap();
@@ -4827,14 +4827,14 @@ fn test_illegal_write_in_vote() {
         .execute_contract(
             Addr::unchecked(CREATOR_ADDR),
             govmod.clone(),
-            &ExecuteMsg::WriteInVote {
+            &ExecuteMsg::WriteInVote(WriteInMsg { 
                 proposal_id: 1,
                 write_in_vote: MultipleChoiceOption {
                     title: "Write in option".to_string(),
                     description: "do this and that".to_string(),
                     msgs: vec![],
                 },
-            },
+            }),
             &[],
         )
         .unwrap_err()
@@ -4917,14 +4917,13 @@ fn test_write_in_expired() {
         .execute_contract(
             Addr::unchecked(CREATOR_ADDR),
             govmod.clone(),
-            &ExecuteMsg::WriteInVote {
+            &ExecuteMsg::WriteInVote(WriteInMsg {
                 proposal_id: 1,
                 write_in_vote: MultipleChoiceOption {
                     title: "Write in option".to_string(),
                     description: "do this and that".to_string(),
                     msgs: vec![],
-                },
-            },
+            }}),
             &[],
         )
         .unwrap_err()
@@ -5001,14 +5000,14 @@ fn test_write_in_non_member() {
         .execute_contract(
             Addr::unchecked(ALTERNATIVE_ADDR),
             govmod.clone(),
-            &ExecuteMsg::WriteInVote {
+            &ExecuteMsg::WriteInVote(WriteInMsg {
                 proposal_id: 1,
                 write_in_vote: MultipleChoiceOption {
                     title: "Write in option".to_string(),
                     description: "do this and that".to_string(),
                     msgs: vec![],
                 },
-            },
+            }),
             &[],
         )
         .unwrap_err()
@@ -5091,14 +5090,15 @@ fn test_write_in_with_fee_no_funds() {
         .execute_contract(
             Addr::unchecked("bekauz"),
             govmod.clone(),
-            &ExecuteMsg::WriteInVote {
+            &ExecuteMsg::WriteInVote(WriteInMsg {
                 proposal_id: 1,
                 write_in_vote: MultipleChoiceOption {
                     title: "Write in option".to_string(),
                     description: "do this and that".to_string(),
                     msgs: vec![],
                 },
-            },
+            }
+        ),
             &[],
         )
         .unwrap_err()
@@ -5185,18 +5185,17 @@ fn test_write_in_with_fee() {
     let balance = query_balance_native(&app, "bekauz", "ujuno");
     assert_eq!(balance, Uint128::new(10));
 
-    // add one more
     app.execute_contract(
         Addr::unchecked("bekauz"),
         govmod.clone(),
-        &ExecuteMsg::WriteInVote {
+        &ExecuteMsg::WriteInVote(WriteInMsg {
             proposal_id: 1,
             write_in_vote: MultipleChoiceOption {
                 title: "Write in option".to_string(),
                 description: "do this and that".to_string(),
                 msgs: vec![],
             },
-        },
+        }),
         &[Coin {
             denom: "ujuno".to_string(),
             amount: Uint128::new(10),

@@ -21,6 +21,8 @@ pub type InstantiateMsg = InstantiateBase<InstantiateExt>;
 pub type ExecuteMsg = ExecuteBase<ProposeMessage, ExecuteExt>;
 pub type QueryMsg = QueryBase<QueryExt>;
 
+use dao_voting::write_in::WriteInMsg as WriteIn;
+
 /// Internal version of the propose message that includes the
 /// `proposer` field. The module will fill this in based on the sender
 /// of the external message.
@@ -120,19 +122,19 @@ pub fn execute_write_in_vote(
 ) -> Result<Response, PreProposeError> {
     let proposal_module = PrePropose::default().proposal_module.load(deps.storage)?;
 
-    // let internal_message = match msg {
-    //     ExecuteExt::WriteInVote { 
-    //         proposal_id, 
-    //         write_in_vote 
-    //     } => dao_proposal_multiple::ExecuteMsg::WriteInVote { 
-    //         proposal_id, 
-    //         write_in_vote, 
-    //     }
-    // };
+    let internal_message = match msg {
+        ExecuteExt::WriteInVote { 
+            proposal_id, 
+            write_in_vote 
+        } => WriteIn { 
+            proposal_id, 
+            write_in_vote, 
+        }
+    };
 
     let write_in_message = WasmMsg::Execute {
         contract_addr: proposal_module.into_string(),
-        msg: to_binary(&"todo")?,
+        msg: to_binary(&internal_message)?,
         funds: info.funds,  // write in deposit
     };
     Ok(Response::default()

@@ -13,6 +13,7 @@ use cosmwasm_std::{to_binary, Addr, CosmosMsg, Decimal, Uint128, WasmMsg};
 use cw20::Cw20Coin;
 use cw_multi_test::{next_block, App, Executor};
 use cw_utils::Duration;
+use dao_voting::write_in::WriteInMsg;
 use dao_voting::{
     deposit::{DepositRefundPolicy, UncheckedDepositInfo},
     multiple_choice::{
@@ -520,14 +521,14 @@ fn test_write_in_impact_on_existing_votes() {
     app.execute_contract(
         Addr::unchecked(CREATOR_ADDR),
         proposal_module.clone(),
-        &ExecuteMsg::WriteInVote {
+        &ExecuteMsg::WriteInVote(WriteInMsg {
             proposal_id,
             write_in_vote: MultipleChoiceOption {
                 title: "title 3".to_string(),
                 description: "multiple choice option 3".to_string(),
                 msgs: vec![],
             },
-        },
+        }),
         &[],
     )
     .unwrap();

@@ -116,10 +116,9 @@ pub fn execute(
             vote,
             rationale,
         } => execute_vote(deps, env, info, proposal_id, vote, rationale),
-        ExecuteMsg::WriteInVote {
-            proposal_id,
-            write_in_vote,
-        } => execute_write_in_vote(deps, env, info, proposal_id, write_in_vote),
+        ExecuteMsg::WriteInVote(
+            msg
+        ) => execute_write_in_vote(deps, env, info, msg.proposal_id, msg.write_in_vote),
         ExecuteMsg::Execute { proposal_id } => execute_execute(deps, env, info, proposal_id),
         ExecuteMsg::Close { proposal_id } => execute_close(deps, env, info, proposal_id),
         ExecuteMsg::UpdateConfig {
