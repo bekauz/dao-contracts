@@ -29,7 +29,7 @@ pub enum ExecuteExt {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryExt {
-    /// List the approver address
+    /// List the write in deposit denom and fee
     #[returns(Option<dao_voting::deposit::CheckedDepositInfo>)]
     WriteInDepositInfo {},
 }

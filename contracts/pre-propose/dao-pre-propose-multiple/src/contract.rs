@@ -10,7 +10,7 @@ use dao_pre_propose_base::{
     msg::{ExecuteMsg as ExecuteBase, InstantiateMsg as InstantiateBase, QueryMsg as QueryBase},
     state::PreProposeContract,
 };
-use dao_voting::{multiple_choice::{MultipleChoiceOptions}};
+use dao_voting::{multiple_choice::{MultipleChoiceOptions}, voting::get_voting_power};
 
 use crate::{state::WRITE_IN_DEPOSIT_INFO, msg::{InstantiateExt, ProposeMessage, ExecuteExt, QueryExt}};
 
@@ -121,6 +121,18 @@ pub fn execute_write_in_vote(
     msg: ExecuteExt,
 ) -> Result<Response, PreProposeError> {
     let proposal_module = PrePropose::default().proposal_module.load(deps.storage)?;
+    let dao = PrePropose::default().dao.load(deps.storage)?;
+    let write_in_deposit_fee = WRITE_IN_DEPOSIT_INFO.load(deps.storage)?;
+    
+    // TODO: validate voting power, write in policy and expiration
+
+    // take the deposit messages if needed
+    let deposit_messages = if let Some(ref write_in_fee) = write_in_deposit_fee {
+        write_in_fee.check_native_deposit_paid(&info)?;
+        write_in_fee.get_take_deposit_messages(&info.sender, &dao)?
+    } else {
+        vec![]
+    };
 
     let internal_message = match msg {
         ExecuteExt::WriteInVote { 
@@ -135,12 +147,13 @@ pub fn execute_write_in_vote(
     let write_in_message = WasmMsg::Execute {
         contract_addr: proposal_module.into_string(),
         msg: to_binary(&internal_message)?,
-        funds: info.funds,  // write in deposit
+        funds: vec![],
     };
+
     Ok(Response::default()
         .add_message(write_in_message)
         .add_attribute("method", "proposal_approved")
-    )
+        .add_messages(deposit_messages))
 }
 
 
