@@ -15,7 +15,6 @@ use dao_proposal_hooks::{new_proposal_hooks, proposal_status_changed_hooks};
 use dao_vote_hooks::new_vote_hooks;
 use dao_voting::multiple_choice::{MultipleChoiceOption};
 use dao_voting::{
-    deposit::{UncheckedDepositInfo},
     multiple_choice::{
         MultipleChoiceOptions, MultipleChoiceVote, MultipleChoiceVotes, VotingStrategy,
     },
@@ -377,18 +376,24 @@ pub fn execute_write_in_vote(
     proposal_id: u64,
     write_in_vote: MultipleChoiceOption,
 ) -> Result<Response<Empty>, ContractError> {
+    let proposal_creation_policy = CREATION_POLICY.load(deps.storage)?;
+
+    // write-ins can only by performed via the pre-proposal module
+    if !proposal_creation_policy.is_module() {
+        return Err(ContractError::NoPrePropModule { });
+    }
+    // validate that sender is the pre-proposal module
+    if !proposal_creation_policy.is_authorized_write_in(&info.sender) {
+        return Err(ContractError::Unauthorized {  });
+    } 
+
     let prop = PROPOSALS
         .may_load(deps.storage, proposal_id)?
         .ok_or(ContractError::NoSuchProposal { id: proposal_id })?;
 
-    // validate caller is the pre-prop-module 
-    // TODO: validate who can perform write-in votes.
-    // probably makes sense to borrow that permission flag from pre-propose module
-
     if !prop.allow_write_ins {
         return Err(ContractError::IllegalWriteIn {});
     }
-
     if prop.expiration.is_expired(&env.block) {
         return Err(ContractError::Expired { id: proposal_id });
     }

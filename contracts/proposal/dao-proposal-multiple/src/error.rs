@@ -107,4 +107,7 @@ pub enum ContractError {
 
     #[error("received a reply failure with an invalid ID: ({id})")]
     InvalidReplyID { id: u64 },
+
+    #[error("This module must have a pre-propose module enabled to perform write-in votes.")]
+    NoPrePropModule {},
 }

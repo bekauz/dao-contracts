@@ -121,15 +121,11 @@ pub fn execute_write_in_vote(
     msg: ExecuteExt,
 ) -> Result<Response, PreProposeError> {
     let proposal_module = PrePropose::default().proposal_module.load(deps.storage)?;
-    let dao = PrePropose::default().dao.load(deps.storage)?;
-    let write_in_deposit_fee = WRITE_IN_DEPOSIT_INFO.load(deps.storage)?;
     
-    // TODO: validate voting power, write in policy and expiration
-
-    // take the deposit messages if needed
-    let deposit_messages = if let Some(ref write_in_fee) = write_in_deposit_fee {
-        write_in_fee.check_native_deposit_paid(&info)?;
-        write_in_fee.get_take_deposit_messages(&info.sender, &dao)?
+    let write_in_deposit_info = WRITE_IN_DEPOSIT_INFO.load(deps.storage)?;
+    let deposit_messages = if let Some(ref deposit_info) = write_in_deposit_info {
+        deposit_info.check_native_deposit_paid(&info)?;
+        deposit_info.get_take_deposit_messages(&info.sender, &env.contract.address)?
     } else {
         vec![]
     };
@@ -144,6 +140,7 @@ pub fn execute_write_in_vote(
         }
     };
 
+    // build a message to be passed to dao-proposal-multiple
     let write_in_message = WasmMsg::Execute {
         contract_addr: proposal_module.into_string(),
         msg: to_binary(&internal_message)?,
@@ -151,9 +148,10 @@ pub fn execute_write_in_vote(
     };
 
     Ok(Response::default()
-        .add_message(write_in_message)
         .add_attribute("method", "proposal_approved")
-        .add_messages(deposit_messages))
+        .add_message(write_in_message)
+        .add_messages(deposit_messages)
+    )
 }
 
 

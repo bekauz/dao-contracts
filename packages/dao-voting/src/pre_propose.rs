@@ -35,6 +35,20 @@ impl ProposalCreationPolicy {
             Self::Module { addr } => creator == addr,
         }
     }
+
+    pub fn is_module(&self) -> bool {
+        match self {
+            Self::Module { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_authorized_write_in(&self, sender: &Addr) -> bool {
+        match self {
+            Self::Anyone {  } => false,
+            Self::Module { addr } => addr == sender,
+        }
+    }
 }
 
 impl PreProposeInfo {
